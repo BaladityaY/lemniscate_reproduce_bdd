@@ -30,7 +30,7 @@ from test import NN, kNN
 from Dataset_Stereo import Dataset
 from torch.autograd.variable import Variable
 
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+#os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
