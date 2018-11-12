@@ -24,7 +24,11 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
     net_time = AverageMeter()
     cls_time = AverageMeter()
     losses = AverageMeter()
+    
     correct = 0.
+    correct_past = 0.
+    correct_future = 0.
+    
     total = 0
     testsize = testloader.dataset.__len__()
 
@@ -54,7 +58,6 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
     
     end = time.time()
     with torch.no_grad():
-        correct_rate = []
         
         for batch_idx, (input_imgs, targets, indexes) in enumerate(testloader):
             targets = targets.cuda(async=True)
@@ -89,24 +92,40 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             #print('retrieval numbers: {}'.format(retrieval))
             
             image_steering_labels = []
+            image_steering_labels_past = []
+            image_steering_labels_future = []
+            
             for batch_id in range(len(input_imgs)):
                 #print('og_targets.shape: {}'.format(og_targets.shape))
                 #print('batch_id: {}'.format(batch_id))
                 batch_i_steer = og_targets[batch_id,:]
                 
                 image_steering_label = 0
+                image_steering_label_past = 0
+                image_steering_label_future = 0
+                
                 for top5_id in range(5):
                     ret_ind = int(retrieval[batch_id, top5_id])
                     img_steer_lab = trainloader.dataset[ret_ind][1].cpu().numpy() 
                     #img_steer_lab = trainloader.dataset.get_label(retrieval[batch_id, top5_id])[1] #old way
                     image_steering_label += np.abs((np.array(img_steer_lab) - batch_i_steer)/2.)
+                    image_steering_label_past += np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
+                    image_steering_label_future += np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
                     
                 image_steering_labels.append(image_steering_label/5)
+                image_steering_labels_past.append(image_steering_label_past/5)
+                image_steering_labels_future.append(image_steering_label_future/5)
+                
                 
             image_steering_labels = np.array(image_steering_labels)
+            image_steering_labels_past = np.array(image_steering_labels_past)
+            image_steering_labels_future = np.array(image_steering_labels_future)
+            
             #print('image_steering_labels shape: {}'.format(image_steering_labels.shape))
             #print('image_steering_labels numbers: {}'.format(image_steering_labels))
             image_steering_labels = 1 - image_steering_labels
+            image_steering_labels_past = 1 - image_steering_labels_past
+            image_steering_labels_future = 1 - image_steering_labels_future
             
             #print('image_steering_labels numbers 2: {}'.format(image_steering_labels))
             
@@ -126,7 +145,10 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             #print "targets {}".format(targets.shape)
             #print indexes
             #correct += retrieval.eq(indexes.data).sum().item()
+            
             correct += np.sum(np.mean(image_steering_labels, axis=1))
+            correct_past += np.sum(np.mean(image_steering_labels_past, axis=1))
+            correct_future += np.sum(np.mean(image_steering_labels_future, axis=1))
             
             cls_time.update(time.time() - end)
             end = time.time()
@@ -137,12 +159,12 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                   'Top5: {:.2f}'.format(
                   total, testsize, correct*100./total, net_time=net_time, cls_time=cls_time))
 
-            correct_rate.append(correct*100./total)
+            
 
         correct_rate = np.array(correct_rate)
         print('correct_rate mean: {}, std: {}'.format(np.mean(correct_rate), np.std(correct_rate)))
 
-    return correct/total
+    return correct/total, correct_past/total, correct_future/total
 
 def img_error_bar(img, error, color):
     error = np.max((np.min((1, error)), -1))

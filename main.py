@@ -87,11 +87,27 @@ parser.add_argument('--iter_size', default=1, type=int,
                     help='caffe style iter size')
 
 best_prec1 = 0
+best_prec1_past = 0
+best_prec1_future = 0
 n_frames = 6
 
 def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,requires_grad=False), size)).data
 
+def add_epoch_score(filename, score):
+    f = open(filename, 'r')
+    lines = f.readlines()
+    f.close()
+    open(filename, 'w').close()
+
+    f = open(filename, 'w')
+    for line in lines:
+        f.write(line)
+    f.write('Epoch {}: {}\n'.format(epoch, score))
+    f.close()
+
+    return
+        
 def main():
     global args, best_prec1
     args = parser.parse_args()
@@ -213,18 +229,11 @@ def main():
         train(train_loader, model, lemniscate, criterion, optimizer, epoch)
 
         # evaluate on validation set
-        prec1 = NN(epoch, model, lemniscate, train_loader, val_loader)
+        prec1, prec1_past, prec1_future = NN(epoch, model, lemniscate, train_loader, val_loader)
 
-        f = open('epoch_scores.txt', 'r')
-        lines = f.readlines()
-        f.close()
-        open('epoch_scores.txt', 'w').close()
-        
-        f = open('epoch_scores.txt', 'w')
-        for line in lines:
-            f.write(line)
-        f.write('Epoch {}: {}'.format(epoch, prec1))
-        f.close()
+        add_epoch_score('epoch_scores.txt', prec1)
+        add_epoch_score('epoch_scores_past.txt', prec1_past)
+        add_epoch_score('epoch_scores_future.txt', prec1_future)
         
         # remember best prec@1 and save checkpoint
         is_best = prec1 > best_prec1
@@ -237,6 +246,29 @@ def main():
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
         }, is_best, epoch)
+
+        is_best_past = prec1_past > best_prec1_past
+        best_prec1_past = max(prec1_past, best_prec1_past)
+        save_checkpoint({
+            'epoch': epoch + 1,
+            'arch': args.arch,
+            'state_dict': model.state_dict(),
+            'lemniscate': lemniscate,
+            'best_prec1_past': best_prec1_past,
+            'optimizer' : optimizer.state_dict(),
+        }, is_best_past, epoch, best_mod='_past')
+        
+        is_best_future = prec1_future > best_prec1_future
+        best_prec1_future = max(prec1_future, best_prec1_future)
+        save_checkpoint({
+            'epoch': epoch + 1,
+            'arch': args.arch,
+            'state_dict': model.state_dict(),
+            'lemniscate': lemniscate,
+            'best_prec1_future': best_prec1_future,
+            'optimizer' : optimizer.state_dict(),
+        }, is_best_future, epoch, best_mod='_future')
+
     # evaluate KNN after last epoch
     kNN(0, model, lemniscate, train_loader, val_loader, 200, args.nce_t)
 
@@ -309,12 +341,12 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         
 
 
-def save_checkpoint(state, is_best, epoch, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, is_best, epoch, filename='checkpoint.pth.tar', best_mod=''):
     filename_split = filename.split('.')
     filename = filename_split[0] + '_epoch{:02d}'.format(epoch) + '.' + filename_split[1] + '.' + filename_split[2]
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        shutil.copyfile(filename, 'model_best{}.pth.tar'.format(best_mod))
 
 def adjust_learning_rate(optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 100 epochs"""
