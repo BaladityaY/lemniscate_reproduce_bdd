@@ -24,6 +24,9 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
     net_time = AverageMeter()
     cls_time = AverageMeter()
     losses = AverageMeter()
+
+    topk = 50
+    steer_eval = {}
     
     correct = 0.
     correct_past = 0.
@@ -81,12 +84,12 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
 
             dist = torch.mm(features, trainFeatures)
 
-            yd, yi = dist.topk(5, dim=1, largest=True, sorted=True)
+            yd, yi = dist.topk(topk, dim=1, largest=True, sorted=True)
             candidates = trainLabels.view(1,-1).expand(batchSize, -1)
             retrieval = torch.gather(candidates, 1, yi)
 
-            retrieval = retrieval.narrow(1, 0, 5).clone().cpu().numpy()#.view(-1)
-            yd = yd.narrow(1, 0, 5)
+            retrieval = retrieval.narrow(1, 0, topk).clone().cpu().numpy()#.view(-1)
+            yd = yd.narrow(1, 0, topk)
             
             #print('retrieval shape: {}'.format(retrieval.shape))
             #print('retrieval numbers: {}'.format(retrieval))
@@ -96,6 +99,11 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             image_steering_labels_future = []
             
             for batch_id in range(len(input_imgs)):
+                if epoch == 0:
+                    steer_eval[indexes[batch_id]] = {'og_steer': og_targets[batch_id, :]}
+                    nn_steers = []
+                    nn_ids = []
+                        
                 #print('og_targets.shape: {}'.format(og_targets.shape))
                 #print('batch_id: {}'.format(batch_id))
                 batch_i_steer = og_targets[batch_id,:]
@@ -103,20 +111,33 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                 image_steering_label = 0
                 image_steering_label_past = 0
                 image_steering_label_future = 0
+
                 
-                for top5_id in range(5):
+                for top5_id in range(topk):
                     ret_ind = int(retrieval[batch_id, top5_id])
                     img_steer_lab = trainloader.dataset[ret_ind][1].cpu().numpy() 
                     #img_steer_lab = trainloader.dataset.get_label(retrieval[batch_id, top5_id])[1] #old way
                     image_steering_label += np.abs((np.array(img_steer_lab) - batch_i_steer)/2.)
                     image_steering_label_past += np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
                     image_steering_label_future += np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
+
+                    if epoch == 0:
+                        nn_steers.append(img_steer_lab)
+                        nn_ids.append(ret_ind)
+
+                if epoch == 0:
+                    steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
+                    steer_eval[indexes[batch_id]]['nn_ids'] = nn_ids
                     
                 image_steering_labels.append(image_steering_label/5)
                 image_steering_labels_past.append(image_steering_label_past/5)
                 image_steering_labels_future.append(image_steering_label_future/5)
                 
-                
+
+            if epoch == 0:
+                with open('steer_eval.pkl', 'wb') as handle:
+                    pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                    
             image_steering_labels = np.array(image_steering_labels)
             image_steering_labels_past = np.array(image_steering_labels_past)
             image_steering_labels_future = np.array(image_steering_labels_future)
@@ -230,7 +251,6 @@ def kNN(epoch, net, lemniscate, trainloader, testloader, K, sigma, recompute_mem
             
         trainLabels = torch.LongTensor(temploader.dataset.train_labels).cuda()
         trainloader.dataset.transform = transform_bak
-    
     
     top1 = 0.
     top5 = 0.
@@ -359,7 +379,7 @@ def kNN(epoch, net, lemniscate, trainloader, testloader, K, sigma, recompute_mem
 
             all_imgs = None
             # Show results for 5 batches
-            for batch_id in range(5):
+            for batch_id in range(8):
                 
                 #print('og_input_imgs shape: {} \n ylen: {}'.format(og_input_imgs.shape, ylen))
                 #print('shape 1: {}'.format(og_input_imgs[batch_id, :,:, 0:3].shape))
