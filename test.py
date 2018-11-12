@@ -99,10 +99,9 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             image_steering_labels_future = []
             
             for batch_id in range(len(input_imgs)):
-                if epoch == 0:
-                    steer_eval[indexes[batch_id]] = {'og_steer': og_targets[batch_id, :]}
-                    nn_steers = []
-                    nn_ids = []
+                steer_eval[indexes[batch_id]] = {'og_steer': og_targets[batch_id, :]}
+                nn_steers = []
+                nn_ids = []
                         
                 #print('og_targets.shape: {}'.format(og_targets.shape))
                 #print('batch_id: {}'.format(batch_id))
@@ -121,22 +120,20 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                     image_steering_label_past += np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
                     image_steering_label_future += np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
 
-                    if epoch == 0:
-                        nn_steers.append(img_steer_lab)
-                        nn_ids.append(ret_ind)
+                    nn_steers.append(img_steer_lab)
+                    nn_ids.append(ret_ind)
 
-                if epoch == 0:
-                    steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
-                    steer_eval[indexes[batch_id]]['nn_ids'] = nn_ids
+                steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
+                steer_eval[indexes[batch_id]]['nn_ids'] = nn_ids
                     
                 image_steering_labels.append(image_steering_label/5)
                 image_steering_labels_past.append(image_steering_label_past/5)
                 image_steering_labels_future.append(image_steering_label_future/5)
                 
 
-            if epoch == 0:
-                with open('steer_eval.pkl', 'wb') as handle:
-                    pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            
+            with open('steer_eval_epoch{}.pkl'.format(epoch), 'wb') as handle:
+                pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
                     
             image_steering_labels = np.array(image_steering_labels)
             image_steering_labels_past = np.array(image_steering_labels_past)
