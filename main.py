@@ -30,7 +30,7 @@ from test import NN, kNN
 from Dataset_Stereo import Dataset
 from torch.autograd.variable import Variable
 
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -44,7 +44,7 @@ parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet18',
                     help='model architecture: ' +
                         ' | '.join(model_names) +
                         ' (default: resnet18)')
-parser.add_argument('-j', '--workers', default=1, type=int, metavar='N',
+parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--epochs', default=200, type=int, metavar='N',
                     help='number of total epochs to run')
@@ -87,27 +87,11 @@ parser.add_argument('--iter_size', default=1, type=int,
                     help='caffe style iter size')
 
 best_prec1 = 0
-best_prec1_past = 0
-best_prec1_future = 0
 n_frames = 6
 
 def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,requires_grad=False), size)).data
 
-def add_epoch_score(filename, score):
-    f = open(filename, 'r')
-    lines = f.readlines()
-    f.close()
-    open(filename, 'w').close()
-
-    f = open(filename, 'w')
-    for line in lines:
-        f.write(line)
-    f.write('Epoch {}: {}\n'.format(epoch, score))
-    f.close()
-
-    return
-        
 def main():
     global args, best_prec1
     args = parser.parse_args()
@@ -138,49 +122,18 @@ def main():
 
 
     # Data loading code
-    #traindir = os.path.join(args.data, 'train')
-    #valdir = os.path.join(args.data, 'val')
-
-    traindir = os.path.join(args.data, 'new_small_train')
-    
-    valdir = os.path.join(args.data, 'new_small_val')  
-    
+    traindir = os.path.join(args.data, 'train')
+    valdir = os.path.join(args.data, 'val')
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-# The original image modifications are not used. 
-#     train_dataset = datasets.ImageFolderInstance(
-#         traindir,
-#         transforms.Compose([
-#             transforms.RandomResizedCrop(224, scale=(0.2,1.)),
-#             transforms.RandomGrayscale(p=0.2),
-#             transforms.ColorJitter(0.4, 0.4, 0.4, 0.4),
-#             transforms.RandomHorizontalFlip(),
-#             transforms.ToTensor(),
-#             normalize,
-#         ]))
+    train_dataset = Dataset(traindir, n_frames)
+    val_dataset = Dataset(valdir, n_frames)
 
-#     val_loader = torch.utils.data.DataLoader(
-#         datasets.ImageFolderInstance(valdir, transforms.Compose([
-#             transforms.Resize(256),
-#             transforms.CenterCrop(224),
-#             transforms.ToTensor(),
-#             normalize,
-#         ])),
-#         batch_size=args.batch_size, shuffle=False,
-#         num_workers=args.workers, pin_memory=True)
-
-    train_dataset = Dataset(traindir, n_frames, 1, args.gpu, frame_rate=1)
-    val_dataset = Dataset(valdir, n_frames, 1, args.gpu, frame_rate=1)
-
-    if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-    else:
-        train_sampler = None
 
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=False, #(train_sampler is None), 
-        num_workers=args.workers, sampler=train_sampler)
+        train_dataset, batch_size=args.batch_size, shuffle=True, #(train_sampler is None), 
+        num_workers=args.workers)
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.batch_size, shuffle=False,
@@ -221,20 +174,15 @@ def main():
         return
 
     for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
-            train_sampler.set_epoch(epoch)
+
         adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
         train(train_loader, model, lemniscate, criterion, optimizer, epoch)
 
         # evaluate on validation set
-        prec1, prec1_past, prec1_future = NN(epoch, model, lemniscate, train_loader, val_loader)
-
-        add_epoch_score('epoch_scores.txt', prec1)
-        add_epoch_score('epoch_scores_past.txt', prec1_past)
-        add_epoch_score('epoch_scores_future.txt', prec1_future)
-        
+        prec1 = NN(epoch, model, lemniscate, train_loader, val_loader)
+  
         # remember best prec@1 and save checkpoint
         is_best = prec1 > best_prec1
         best_prec1 = max(prec1, best_prec1)
@@ -246,29 +194,6 @@ def main():
             'best_prec1': best_prec1,
             'optimizer' : optimizer.state_dict(),
         }, is_best, epoch)
-
-        is_best_past = prec1_past > best_prec1_past
-        best_prec1_past = max(prec1_past, best_prec1_past)
-        save_checkpoint({
-            'epoch': epoch + 1,
-            'arch': args.arch,
-            'state_dict': model.state_dict(),
-            'lemniscate': lemniscate,
-            'best_prec1_past': best_prec1_past,
-            'optimizer' : optimizer.state_dict(),
-        }, is_best_past, epoch, best_mod='_past')
-        
-        is_best_future = prec1_future > best_prec1_future
-        best_prec1_future = max(prec1_future, best_prec1_future)
-        save_checkpoint({
-            'epoch': epoch + 1,
-            'arch': args.arch,
-            'state_dict': model.state_dict(),
-            'lemniscate': lemniscate,
-            'best_prec1_future': best_prec1_future,
-            'optimizer' : optimizer.state_dict(),
-        }, is_best_future, epoch, best_mod='_future')
-
     # evaluate KNN after last epoch
     kNN(0, model, lemniscate, train_loader, val_loader, 200, args.nce_t)
 
@@ -283,7 +208,10 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
 
     end = time.time()
     optimizer.zero_grad()
-    for i, (input_imgs,input_steerings, indices) in enumerate(train_loader):
+    
+    
+    for i, (input_imgs,action_probabilities, indices) in enumerate(train_loader):
+        
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -293,14 +221,13 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         input_imgs = resize2d(input_imgs, (224,224))
 
     
-        input_imgs = input_imgs[:,12:18,:,:] #extract only img 3 out of 6
-        input_steerings = input_steerings[:,0:3] #extract steers first 3 out of 6
+        input_imgs = input_imgs[:,0:9,:,:] #extract the first 3 images
+        action_probabilities = action_probabilities[:,0:3] #extract steers first 3 out of 6 
         #print("input_imgs shape: {}".format(input_imgs.shape))
-        #print("input_steerings shape: {}".format(input_steerings.shape))
-
+        #print("action_probabilities shape: {}".format(action_probabilities.shape))
 
         #print("input_imgs shape: {}".format(input_imgs.shape))
-        #print("input_steerings shape: {}".format(input_steerings.shape))
+        #print("action_probabilities shape: {}".format(action_probabilities.shape))
         
 # Code to see the images        
 #         for j in range(input_imgs.size()[0]):
@@ -310,8 +237,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
 #                 cv2.imshow("Test",img[0:3].transpose((1,2,0))+0.5)
 #                 cv2.waitKey(400)
 
-        
-        feature = model(input_imgs, input_steerings)
+        feature = model(input_imgs, action_probabilities)
         output = lemniscate(feature, indices)
         loss = criterion(output, indices) / args.iter_size
 
@@ -341,12 +267,12 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         
 
 
-def save_checkpoint(state, is_best, epoch, filename='checkpoint.pth.tar', best_mod=''):
+def save_checkpoint(state, is_best, epoch, filename='checkpoint.pth.tar'):
     filename_split = filename.split('.')
     filename = filename_split[0] + '_epoch{:02d}'.format(epoch) + '.' + filename_split[1] + '.' + filename_split[2]
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best{}.pth.tar'.format(best_mod))
+        shutil.copyfile(filename, 'model_best.pth.tar')
 
 def adjust_learning_rate(optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 100 epochs"""
