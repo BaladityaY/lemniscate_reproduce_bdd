@@ -144,13 +144,13 @@ class ResNet(nn.Module):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes+9, planes * block.expansion, #steering concat
+                nn.Conv2d(self.inplanes+18, planes * block.expansion, #steering concat
                           kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
         layers = []
-        layers.append(block(self.inplanes+9, planes, stride, downsample)) #steering concat
+        layers.append(block(self.inplanes+18, planes, stride, downsample)) #steering concat
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))
@@ -289,7 +289,7 @@ class ResNet(nn.Module):
         
         # ORIGINAL WAY OF ADDING STEER
         action_probabilities = action_probabilities.view(action_probabilities.size()[0],-1).expand(28,28,-1,-1).permute(2,3,0,1)
-
+        
         #print action_probabilities
         #print('action_probabilities size: {}'.format(action_probabilities.size()))
         #print('imgs size: {}'.format(imgs.size()))
