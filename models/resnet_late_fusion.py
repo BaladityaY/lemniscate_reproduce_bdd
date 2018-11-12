@@ -101,7 +101,7 @@ class ResNet(nn.Module):
         self.inplanes = 64
         super(ResNet, self).__init__()
         
-        self.conv1 = nn.Conv2d(6, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(9, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
@@ -144,13 +144,13 @@ class ResNet(nn.Module):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes+6, planes * block.expansion, #steering concat
+                nn.Conv2d(self.inplanes+9, planes * block.expansion, #steering concat
                           kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
         layers = []
-        layers.append(block(self.inplanes+6, planes, stride, downsample)) #steering concat
+        layers.append(block(self.inplanes+9, planes, stride, downsample)) #steering concat
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))
@@ -198,12 +198,12 @@ class ResNet(nn.Module):
 
                 mag_field = u_field**2 + v_field**2
 
-                flow_field = np.zeros((x_len, y_len, 2))
+                flow_field = np.zeros((x_len, y_len, 3))
                 flow_field[:,:,0] = u_field
                 flow_field[:,:,1] = v_field
-                #flow_field[:,:,2] = mag_field
+                flow_field[:,:,2] = mag_field
 
-                flow_field = flow_field.reshape((1,x_len,y_len,2))
+                flow_field = flow_field.reshape((1,x_len,y_len,3))
 
                 if flow_fields is None:
                     flow_fields = flow_field
@@ -217,10 +217,10 @@ class ResNet(nn.Module):
 
         return all_flow_fields
 
-    def forward(self, imgs, steering):
+    def forward(self, imgs, action_probabilities):
         #imgs = imgs[:,6:,:,:]
         #print("imgs shape: {}".format(imgs.shape))
-        #print("steering shape: {}".format(steering.shape))
+        #print("action_probabilities shape: {}".format(action_probabilities.shape))
         
         imgs = self.conv1(imgs)
         
@@ -235,57 +235,52 @@ class ResNet(nn.Module):
         
         #print('post layer 2')
         
-        # Design decision. Chosen position for late fusion of steering command
+        # Design decision. Chosen position for late fusion of action_probabilities command
         # Steering commands for each timestep are put in separate channels and then
         # copied to occupy the entire channel
-        #print('pre steering size: {}'.format(steering.size()))
-        #print('pre steering vals: {}'.format(steering))
+        #print('pre action_probabilities size: {}'.format(action_probabilities.size()))
+        #print('pre action_probabilities vals: {}'.format(action_probabilities))
         
-        '''
+        
         ### CREATE STEERING HOTMATRICES
-        og_steering = steering.clone()
-        steering = steering + Variable(torch.Tensor([1.0]).float().cuda()).expand(steering.size())
-        steering = torch.round(steering * Variable(torch.Tensor([6.0/2.0]).float().cuda()).expand(steering.size())).long()
-        steering[steering < 0] = 0
-        steering[steering > 6] = 6
-        #print('post steering size: {}'.format(steering.size()))
-        #print('post steering vals: {}'.format(steering))
-        
-        steering_hotvecs = None
-        for i in range(3):
-            steering_hotvec = torch.zeros(steering.size()[0], 7, 1)
-            #print('og steering i: {} \nsteering i: {}'.format(og_steering[:,i], steering[:,i]))
-            steering_hotvec = steering_hotvec.scatter(1, steering[:,i].cpu().view(steering.size()[0],1,1), 1)
-            
-            steering_hotvec = steering_hotvec.permute(0, 2, 1)
-            
-            if steering_hotvecs is None:
-                steering_hotvecs = steering_hotvec
-            else:
-                steering_hotvecs = torch.cat((steering_hotvecs, steering_hotvec), dim=1)
-                
-        steering_hotvecs = steering_hotvecs.view(steering_hotvecs.size()[0],
-                                                 steering_hotvecs.size()[1],
-                                                 steering_hotvecs.size()[2], 1)
-        
-        steering_hotvecs = steering_hotvecs.permute(2, 3, 0, 1)
-                
-        #print('steering_hotvecs shape: {}'.format(steering_hotvecs.shape))
-        #print('steering_hotvecs vals: {}'.format(steering_hotvecs))
-        
-        steering_hotvecs = steering_hotvecs.expand(-1, 28, -1, -1)
-        
-        steering_hotvecs = torch.cat((steering_hotvecs, steering_hotvecs, 
-                                      steering_hotvecs, steering_hotvecs), dim=0)
-        
-        steering_hotvecs = steering_hotvecs.permute(2, 3, 0, 1).cuda()
-        '''
-        
-        
-        ### CREATE FLOW FIELDS
-        steering_hotvecs = Variable(torch.from_numpy(self._get_flow_fields(np.array(steering)))).float().cuda()
-        steering_hotvecs = steering_hotvecs.permute(0, 3, 1, 2)
-        
+#         og_steering = action_probabilities.clone()
+#         action_probabilities = action_probabilities + Variable(torch.Tensor([1.0]).float().cuda()).expand(action_probabilities.size())
+#         action_probabilities = torch.round(action_probabilities * Variable(torch.Tensor([6.0/2.0]).float().cuda()).expand(action_probabilities.size())).long()
+#         action_probabilities[action_probabilities < 0] = 0
+#         action_probabilities[action_probabilities > 6] = 6
+#         #print('post action_probabilities size: {}'.format(action_probabilities.size()))
+#         #print('post action_probabilities vals: {}'.format(action_probabilities))
+#         
+#         steering_hotvecs = None
+#         for i in range(3):
+#             steering_hotvec = torch.zeros(action_probabilities.size()[0], 7, 1)
+#             #print('og action_probabilities i: {} \nsteering i: {}'.format(og_steering[:,i], action_probabilities[:,i]))
+#             steering_hotvec = steering_hotvec.scatter(1, action_probabilities[:,i].cpu().view(action_probabilities.size()[0],1,1), 1)
+#             
+#             steering_hotvec = steering_hotvec.permute(0, 2, 1)
+#             
+#             if steering_hotvecs is None:
+#                 steering_hotvecs = steering_hotvec
+#             else:
+#                 steering_hotvecs = torch.cat((steering_hotvecs, steering_hotvec), dim=1)
+#                 
+#         steering_hotvecs = steering_hotvecs.view(steering_hotvecs.size()[0],
+#                                                  steering_hotvecs.size()[1],
+#                                                  steering_hotvecs.size()[2], 1)
+#         
+#         steering_hotvecs = steering_hotvecs.permute(2, 3, 0, 1)
+#                 
+#         #print('steering_hotvecs shape: {}'.format(steering_hotvecs.shape))
+#         #print('steering_hotvecs vals: {}'.format(steering_hotvecs))
+#         
+#         steering_hotvecs = steering_hotvecs.expand(-1, 28, -1, -1)
+#         
+#         steering_hotvecs = torch.cat((steering_hotvecs, steering_hotvecs, 
+#                                       steering_hotvecs, steering_hotvecs), dim=0)
+#         
+#         steering_hotvecs = steering_hotvecs.permute(2, 3, 0, 1).cuda()
+#         
+
         #print('steering_hotvecs shape post expansion: {}'.format(steering_hotvecs.shape))
         #print('steering_hotvecs vals post expansion: {}'.format(steering_hotvecs))
         
@@ -293,12 +288,13 @@ class ResNet(nn.Module):
         #    print('val: {}'.format(steering_hotvecs[0,i,:14,:14]))
         
         # ORIGINAL WAY OF ADDING STEER
-        #steering = steering.view(steering.size()[0],-1).expand(28,28,-1,-1).permute(2,3,0,1)
+        action_probabilities = action_probabilities.view(action_probabilities.size()[0],-1).expand(28,28,-1,-1).permute(2,3,0,1)
 
-        #print('steering size: {}'.format(steering.size()))
+        #print action_probabilities
+        #print('action_probabilities size: {}'.format(action_probabilities.size()))
         #print('imgs size: {}'.format(imgs.size()))
 
-        imgs = torch.cat((imgs, steering_hotvecs), dim=1)
+        imgs = torch.cat((imgs, action_probabilities), dim=1)
         
         imgs = self.layer3(imgs)
         imgs = self.layer4(imgs)
