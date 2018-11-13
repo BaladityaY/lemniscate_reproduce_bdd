@@ -103,7 +103,7 @@ class BDD_Helper(object):
         action = np.zeros(l).astype(np.int32)
         course_diff = np.zeros(l).astype(np.float32)
     
-        enum = turn_str2int
+        enum = BDD_Helper.turn_str2int
     
         thresh_low = (2*math.pi / 360)*1
         thresh_high = (2*math.pi / 360)*35
