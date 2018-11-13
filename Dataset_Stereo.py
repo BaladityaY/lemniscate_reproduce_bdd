@@ -24,28 +24,23 @@ class Data_Moment():
     
     def __init__(self, images, speeds, actions, start_index, stop_index, filename):
         
-        self.images = images
-        self.actions = actions
-        self.speeds = speeds
+        self.images = images[start_index:stop_index]
+        self.actions = actions[start_index:stop_index]
+        self.speeds = speeds[start_index:stop_index]
         
         self.filename = filename
         
         self.start_index = start_index
         self.stop_index = stop_index
-        
-    @property
-    def data_point(self):     
-        return {'imgs':self.images[self.start_index:self.stop_index], 
-                'actions':self.actions[self.start_index:self.stop_index], 
-                'speeds':self.speeds[self.start_index:self.stop_index]}
     
-    def __len__(self):
-        # This step introduced quite a delay before training. Maybe there is a better way to check
-        # if the current data moment is long enough
-        if self.stop_index > len(self.images):
-            return len(self.images) - self.start_index 
-        else:
-            return self.stop_index - self.start_index 
+    def convert_images(self, encoded_images):
+        return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]      
+    
+    def data_point(self):     
+        return {'imgs':self.convert_images(self.images), 
+                'actions':self.actions, 
+                'speeds':self.speeds}
+    
 
 class Dataset(data.Dataset):
     
@@ -58,7 +53,6 @@ class Dataset(data.Dataset):
     def sort_filelist(self,data_folder_dir):
         
         file_list = []
-        print data_folder_dir
         for path, subdirs, files in os.walk(data_folder_dir,followlinks=True):
             for file_name in files:
                 if file_name.endswith('h5'):
@@ -69,8 +63,6 @@ class Dataset(data.Dataset):
         return sorted(file_list,key=self.sort_folder_ft)
         
         
-    def convert_images(self, encoded_images):
-        return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]      
     
     
     def __init__(self, data_folder_dir, n_frames):
@@ -84,12 +76,9 @@ class Dataset(data.Dataset):
            
             database_file = h5py.File(filename, 'r')                        
             
-            images = self.convert_images(database_file['image']['encoded'])
+            images = database_file['image']['encoded']
             speeds = np.reshape(database_file['image']['speeds'][:], [-1, 2])
             actions = BDD_Helper.turn_future_smooth(speeds, 5, 0)
-            
-            print('actions shape: {}'.format(actions.shape))
-            #print('actions: {}'.format(actions))
             
             for i in range(len(images)):
                 if i + n_frames >= actions.shape[0]:
@@ -108,11 +97,11 @@ class Dataset(data.Dataset):
                 
                 self.all_action_bins[ind_to_change] = self.all_action_bins[ind_to_change] + 1
    
-                if len(moment) == n_frames:
+                if i + n_frames < len(images): 
                     self.run_files.append(moment)
                 else:
                     pass
-                        # #print "dark frame detected" # or just trying to
+                    # Not enough frames left for a full data moment
                 
     def __len__(self):
         return len(self.run_files)
@@ -123,14 +112,14 @@ class Dataset(data.Dataset):
         
         for frame in range(self.n_frames): 
             
-            img = torch.FloatTensor(data_moment.data_point['imgs'][frame]).to(get_device())
+            img = torch.FloatTensor(data_moment.data_point()['imgs'][frame]).to(get_device())
             camera_data = torch.cat((camera_data, img), 2)
              
         camera_data = camera_data.float() / 255. - 0.5
         camera_data = torch.transpose(camera_data, 0, 2)
         camera_data = torch.transpose(camera_data, 1, 2)
 
-        all_actions = torch.from_numpy(data_moment.data_point['actions'][:]).float().to(get_device()) 
+        all_actions = torch.from_numpy(data_moment.data_point()['actions'][:]).float().to(get_device()) 
         
         return camera_data, all_actions, index
     

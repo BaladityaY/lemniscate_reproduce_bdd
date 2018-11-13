@@ -218,7 +218,8 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         indices = indices.to(get_device(args.gpu))
         
         # Change the image size so it fits to the network
-        input_imgs = resize2d(input_imgs, (224,224))
+        #input_imgs = resize2d(input_imgs, (224,224))
+        # The images are now already in the right size
 
     
         input_imgs = input_imgs[:,0:9,:,:] #extract the first 3 images
@@ -236,7 +237,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
 #                 #print img[0:3].transpose((1,2,0)).shape                
 #                 cv2.imshow("Test",img[0:3].transpose((1,2,0))+0.5)
 #                 cv2.waitKey(400)
-
+        #print input_imgs.size()
         feature = model(input_imgs, action_probabilities)
         output = lemniscate(feature, indices)
         loss = criterion(output, indices) / args.iter_size
