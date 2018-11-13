@@ -100,7 +100,9 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             image_steering_labels_future = []
             
             for batch_id in range(len(input_imgs)):
-                steer_eval[indexes[batch_id]] = {'og_steer': og_targets[batch_id, :]}
+                steer_eval[indexes[batch_id]] = {'og_steer': og_targets[batch_id, :],
+                                                 'nn_steers': None,
+                                                 'nn_ids': None}
                 nn_steers = []
                 nn_ids = []
                         
@@ -125,7 +127,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                     nn_ids.append(ret_ind)
 
                 steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
-                steer_eval[indexes[batch_id]]['nn_ids'] = nn_ids
+                steer_eval[indexes[batch_id]]['nn_ids'] = np.array(nn_ids)
                     
                 image_steering_labels.append(image_steering_label/5)
                 image_steering_labels_past.append(image_steering_label_past/5)
