@@ -102,6 +102,8 @@ class Dataset(data.Dataset):
                 else:
                     pass
                     # Not enough frames left for a full data moment
+                    
+            print "Len of run files is {}".format(len(self.run_files))
                 
     def __len__(self):
         return len(self.run_files)
