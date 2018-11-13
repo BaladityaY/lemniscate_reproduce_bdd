@@ -219,7 +219,7 @@ class ResNet(nn.Module):
 
     def forward(self, imgs, action_probabilities):
         #imgs = imgs[:,6:,:,:]
-        print("imgs shape: {}".format(imgs.shape))
+        #print("imgs shape: {}".format(imgs.shape))
         #print("action_probabilities shape: {}".format(action_probabilities.shape))
         
         imgs = self.conv1(imgs)

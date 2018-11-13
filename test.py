@@ -72,13 +72,13 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             
             #print('input_imgs shape: {}'.format(input_imgs.shape))
             #print('og_targets: {}'.format(og_targets))
-            print input_imgs.size()
+            #print input_imgs.size()
             input_imgs = input_imgs[:,0:9,:,:] #extract only img 1 through 3
             targets = targets[:,0:3] #extract steers first 3 targets
                 
             #input_imgs = resize2d(input_imgs, (224,224))
             # The new images are already in the right size
-            print input_imgs.size()
+            #print input_imgs.size()
             features = net(input_imgs, targets)
             net_time.update(time.time() - end)
             end = time.time()
@@ -100,7 +100,10 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             image_steering_labels_future = []
             
             for batch_id in range(len(input_imgs)):
-                steer_eval[indexes[batch_id]] = {'og_steer': og_targets[batch_id, :],
+                
+                dict_index = indexes[batch_id] 
+                
+                steer_eval[dict_index] = {'og_steer': og_targets[batch_id, :],
                                                  'nn_steers': None,
                                                  'nn_ids': None}
                 nn_steers = []
@@ -125,9 +128,9 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
 
                     nn_steers.append(img_steer_lab)
                     nn_ids.append(ret_ind)
-
-                steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
-                steer_eval[indexes[batch_id]]['nn_ids'] = np.array(nn_ids)
+                
+                steer_eval[dict_index]['nn_steers'] = np.array(nn_steers)
+                steer_eval[dict_index]['nn_ids'] = np.array(nn_ids)
                     
                 image_steering_labels.append(image_steering_label/5)
                 image_steering_labels_past.append(image_steering_label_past/5)
