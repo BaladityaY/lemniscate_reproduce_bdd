@@ -209,7 +209,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
     end = time.time()
     optimizer.zero_grad()
     
-    
+    print len(train_loader.dataset)
     for i, (input_imgs,action_probabilities, indices) in enumerate(train_loader):
         
         # measure data loading time
@@ -265,7 +265,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
                    data_time=data_time, loss=losses)
                   
                   
-        
+    print "Trained for {}".format(i)
 
 
 def save_checkpoint(state, is_best, epoch, filename='checkpoint.pth.tar'):
