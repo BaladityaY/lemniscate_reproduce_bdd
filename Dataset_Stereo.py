@@ -83,20 +83,20 @@ class Dataset(data.Dataset):
            
             database_file = h5py.File(filename, 'r')                        
             
-            images = self.convert_images(database_file['image']['encoded'])
-            speeds = np.reshape(database_file['image']['speeds'][:], [-1, 2])
-            actions = BDD_Helper.turn_future_smooth(speeds, 5, 0)
-            
-            for i in range(len(images)):
-                
-                moment = Data_Moment(images, speeds, actions, i, i + n_frames, filename)
-                
-                if len(moment) == n_frames:
-                    self.run_files.append(moment)
-                else:
-                    pass
+            #images = self.convert_images(database_file['image']['encoded'])
+            #speeds = np.reshape(database_file['image']['speeds'][:], [-1, 2])
+            #actions = BDD_Helper.turn_future_smooth(speeds, 5, 0)
+            # 
+            # for i in range(len(images)):
+            #     
+            #     moment = Data_Moment(images, speeds, actions, i, i + n_frames, filename)
+            #    
+            #    if len(moment) == n_frames:
+            #        self.run_files.append(moment)
+            #    else:
+            #        pass
                         # #print "dark frame detected" # or just trying to
-
+            self.run_files.append(database_file)
                 
     def __len__(self):
         return len(self.run_files)
