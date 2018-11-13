@@ -98,12 +98,13 @@ class Dataset(data.Dataset):
                 self.all_action_bins[ind_to_change] = self.all_action_bins[ind_to_change] + 1
    
                 if i + n_frames < len(images): 
-                    self.run_files.append(moment)
+                    self.run_files.append({'filename':filename,'start_index':i,'end_index':i+n_frames})
                 else:
                     pass
                     # Not enough frames left for a full data moment
                     
             print "Len of run files is {}".format(len(self.run_files))
+            database_file.close()
                 
     def __len__(self):
         return len(self.run_files)
