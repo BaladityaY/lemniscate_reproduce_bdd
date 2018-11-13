@@ -82,7 +82,7 @@ class Dataset(data.Dataset):
             for i in range(len(images)):
                 moment = Data_Moment(images, speeds, actions, i, i + n_frames, filename)
 
-                if i + n_frames < len(images): 
+                if i + n_frames < len(speeds): 
                     self.run_files.append(moment)
                 else:
                     pass
@@ -106,7 +106,7 @@ class Dataset(data.Dataset):
         camera_data = torch.transpose(camera_data, 0, 2)
         camera_data = torch.transpose(camera_data, 1, 2)
 
-        all_actions = torch.from_numpy(data_moment.data_point()['actions'][:]).float().to(get_device()) 
+        all_actions = torch.from_numpy(data_moment.data_point()['actions'][:]).float().to(get_device())
         
         return camera_data, all_actions, index
     
