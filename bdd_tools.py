@@ -11,9 +11,6 @@ Original code at: https://github.com/gy20073/BDD_Driving_Model by gy20073
 import math
 import numpy as np
 
-turn_str2int={'not_sure': -1, 'straight': 0, 'slow_or_stop': 1,
-              'turn_left': 2, 'turn_right': 3,
-              'turn_left_slight': 4, 'turn_right_slight': 5,} #'acceleration': 6, 'deceleration': 7}
 
 
 ego_previous_nstep = 30
@@ -36,6 +33,9 @@ frame_rate = 15
 
 class BDD_Helper(object):
     
+    turn_str2int={'not_sure': -1, 'straight': 0, 'slow_or_stop': 1,
+              'turn_left': 2, 'turn_right': 3,
+              'turn_left_slight': 4, 'turn_right_slight': 5,} #'acceleration': 6, 'deceleration': 7}
     
     turn_int2str={y: x for x, y in turn_str2int.iteritems()}
     naction = np.sum(np.less_equal(0, np.array(turn_str2int.values())))
@@ -184,5 +184,5 @@ class BDD_Helper(object):
 
 if __name__ == '__main__':
     print "test"
-    
+    print BDD_Helper.turn_str2int
     pass
