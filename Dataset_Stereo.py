@@ -67,7 +67,7 @@ class Dataset(data.Dataset):
     
     def __init__(self, data_folder_dir, n_frames):
         
-        self.run_files = []
+        self.run_files = {}
         self.n_frames = n_frames
         self.all_action_bins = np.zeros(6)
         
@@ -84,7 +84,7 @@ class Dataset(data.Dataset):
                 if i + n_frames >= actions.shape[0]:
                     continue
                 
-                moment = Data_Moment(images, speeds, actions, i, i + n_frames, filename)
+                #moment = Data_Moment(images, speeds, actions, i, i + n_frames, filename)
    
                 action_i = actions[i+2:i+3, :][0]
                 action_i[action_i > 0] = 1.
@@ -98,13 +98,20 @@ class Dataset(data.Dataset):
                 self.all_action_bins[ind_to_change] = self.all_action_bins[ind_to_change] + 1
    
                 if i + n_frames < len(images): 
-                    self.run_files.append({'filename':filename,'start_index':i,'end_index':i+n_frames})
+                    self.run_files[i] = {'filename':filename,'start_index':i,'end_index':i+n_frames}
                 else:
                     pass
                     # Not enough frames left for a full data moment
                     
             print "Len of run files is {}".format(len(self.run_files))
             database_file.close()
+            
+        with h5py.File("filename_index_list.h5",'w') as list_file:
+            for index in self.run_files.keys():
+                for key in self.run_files[index].keys():
+                    list_file.create_dataset(str(index)+"/"+key,data=self.run_files[index][key])
+        
+        exit()
                 
     def __len__(self):
         return len(self.run_files)
@@ -132,14 +139,14 @@ class Dataset(data.Dataset):
 
 if __name__ == '__main__':
     import cv2
-    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",6)
+    train_dataset = Dataset("/home/sascha/for_bdd_training/smaller_dataset/train",6)
     
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
-    
-    for i, (images, actions, index) in enumerate(train_loader):
-        print actions
-        img = images[0][6:9].data.cpu().numpy()
-        img = img.transpose((1,2,0))+0.5
-        cv2.imshow("Test", img)
-        cv2.waitKey(60)
+#     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
+#     
+#     for i, (images, actions, index) in enumerate(train_loader):
+#         print actions
+#         img = images[0][6:9].data.cpu().numpy()
+#         img = img.transpose((1,2,0))+0.5
+#         cv2.imshow("Test", img)
+#         cv2.waitKey(60)
     
