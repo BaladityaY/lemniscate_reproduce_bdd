@@ -16,7 +16,7 @@ import scipy
 from scipy import stats
 
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
-import torch.nn as nn, criterion = nn.CrossEntropyLoss()
+import torch.nn as nn
 
 def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,volatile=True), size)).data
@@ -148,9 +148,9 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                 
 
                                 
-            image_steering_labels = np.array(image_steering_labels)
-            image_steering_labels_past = np.array(image_steering_labels_past)
-            image_steering_labels_future = np.array(image_steering_labels_future)
+            image_steering_labels = -1*np.array(image_steering_labels)
+            image_steering_labels_past = -1*np.array(image_steering_labels_past)
+            image_steering_labels_future = -1*np.array(image_steering_labels_future)
             
             #print('image_steering_labels shape: {}'.format(image_steering_labels.shape))
             #print('image_steering_labels numbers: {}'.format(image_steering_labels))
@@ -177,9 +177,9 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             #print indexes
             #correct += retrieval.eq(indexes.data).sum().item()
             
-            correct += np.sum(np.mean(image_steering_labels, axis=1))
-            correct_past += np.sum(np.mean(image_steering_labels_past, axis=1))
-            correct_future += np.sum(np.mean(image_steering_labels_future, axis=1))
+            correct += np.sum(image_steering_labels)
+            correct_past += np.sum(image_steering_labels_past)
+            correct_future += np.sum(image_steering_labels_future)
             
             cls_time.update(time.time() - end)
             end = time.time()
@@ -188,14 +188,14 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                   'Net Time {net_time.val:.3f} ({net_time.avg:.3f})\t'
                   'Cls Time {cls_time.val:.3f} ({cls_time.avg:.3f})\t'
                   'Top5: {:.2f}'.format(
-                  total, testsize, correct*100./total, net_time=net_time, cls_time=cls_time))
+                  total, testsize, correct/total, net_time=net_time, cls_time=cls_time))
 
             
         with open('steer_eval_epoch{}.pkl'.format(epoch), 'wb') as handle:
              pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
                              
-        correct_rate = np.array(correct) # Changed this from correct_rate which was not known
-        print('correct_rate mean: {}, std: {}'.format(np.mean(correct_rate), np.std(correct_rate)))
+        #correct_rate = np.array(correct) # Changed this from correct_rate which was not known
+        #print('correct_rate mean: {}, std: {}'.format(np.mean(correct_rate), np.std(correct_rate)))
 
     return correct/total, correct_past/total, correct_future/total
 
