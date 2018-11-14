@@ -203,7 +203,9 @@ def main():
         add_epoch_score('epoch_scores.txt', epoch, prec1)
         add_epoch_score('epoch_scores_past.txt', epoch, prec1_past)
         add_epoch_score('epoch_scores_future.txt', epoch, prec1_future)
-  
+        
+        # Sascha: This is a bug because it seems prec1 or best_prec1 is a vector at some point with
+        # more than one entry
         # remember best prec@1 and save checkpoint
         is_best = prec1 > best_prec1
         best_prec1 = max(prec1, best_prec1)

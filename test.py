@@ -192,7 +192,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
 
             
         with open('steer_eval_epoch{}.pkl'.format(epoch), 'wb') as handle:
-             pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
                              
         #correct_rate = np.array(correct) # Changed this from correct_rate which was not known
         #print('correct_rate mean: {}, std: {}'.format(np.mean(correct_rate), np.std(correct_rate)))

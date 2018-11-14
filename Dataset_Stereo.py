@@ -171,7 +171,7 @@ class Dataset(data.Dataset):
 
 if __name__ == '__main__':
     import cv2
-    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",6)
+    train_dataset = Dataset("/home/sascha/for_bdd_training/smaller_dataset/",6)
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
