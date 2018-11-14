@@ -135,7 +135,20 @@ class Dataset(data.Dataset):
             new_counts[action_ind] = new_counts[action_ind] + 1
 
         self.run_files = new_run_files
+        
+        
+        with h5py.File("filename_index_list.h5",'w') as list_file:
+    
+            for i, moment in enumerate(self.run_files):
+                #{'filename':filename,'start_index':i,'end_index':i+n_frames}
+                
+                
+                    list_file.create_dataset(str(i)+"/"+"filename",data=moment.filename)
+                    list_file.create_dataset(str(i)+"/"+"start_index",data=moment.start_index)
+                    list_file.create_dataset(str(i)+"/"+"stop_index",data=moment.stop_index)
 
+
+        exit()
         '''
         f = plt.figure()
         f.add_subplot(1,2,1)
@@ -171,7 +184,8 @@ class Dataset(data.Dataset):
 
 if __name__ == '__main__':
     import cv2
-    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",6)
+    train_dataset = Dataset("/home/sascha/for_bdd_training/smaller_dataset/train",6)
+    exit()
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
