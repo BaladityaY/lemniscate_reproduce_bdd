@@ -1,4 +1,6 @@
 import torch
+import torch.nn as nn
+from torch.autograd import Variable
 import time
 import datasets
 from lib.utils import AverageMeter
@@ -14,10 +16,20 @@ import scipy
 from scipy import stats
 
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+import torch.nn as nn, criterion = nn.CrossEntropyLoss()
 
 def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,volatile=True), size)).data
 
+
+def bce(a1, a2):
+    t1 = Variable(torch.from_numpy(a1).type(torch.FloatTensor))
+    t2 = Variable(torch.from_numpy(a2).type(torch.FloatTensor))
+
+    criterion = nn.BCELoss(reduce=False)
+    loss = criterion(t1, t2)
+
+    return np.mean(np.array(loss).flatten())
 
 def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
     net.eval()
@@ -49,7 +61,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             targets = targets.cuda(async=True)
             batchSize = input_imgs.size(0)
             
-            input_imgs = input_imgs[:,12:18,:,:] #extract only img 3 out of 6
+            input_imgs = input_imgs[:,0:9,:,:] #extract only img 3 out of 6
             targets = targets[:,0:3] #extract steers first 3 out of 6
             
             input_imgs = resize2d(input_imgs, (224,224))
@@ -72,13 +84,13 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             
             #print('input_imgs shape: {}'.format(input_imgs.shape))
             #print('og_targets: {}'.format(og_targets))
-            #print input_imgs.size()
+            print input_imgs.size()
             input_imgs = input_imgs[:,0:9,:,:] #extract only img 1 through 3
             targets = targets[:,0:3] #extract steers first 3 targets
                 
             #input_imgs = resize2d(input_imgs, (224,224))
             # The new images are already in the right size
-            #print input_imgs.size()
+            print input_imgs.size()
             features = net(input_imgs, targets)
             net_time.update(time.time() - end)
             end = time.time()
@@ -98,12 +110,10 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             image_steering_labels = []
             image_steering_labels_past = []
             image_steering_labels_future = []
+            indexes = np.array(indexes)
             
             for batch_id in range(len(input_imgs)):
-                
-                dict_index = indexes[batch_id] 
-                
-                steer_eval[dict_index] = {'og_steer': og_targets[batch_id, :],
+                steer_eval[indexes[batch_id]] = {'og_steer': og_targets[batch_id, :],
                                                  'nn_steers': None,
                                                  'nn_ids': None}
                 nn_steers = []
@@ -111,7 +121,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                         
                 #print('og_targets.shape: {}'.format(og_targets.shape))
                 #print('batch_id: {}'.format(batch_id))
-                batch_i_steer = og_targets[batch_id,:]
+                batch_i_steer = og_targets[batch_id,:] # 6x6
                 
                 image_steering_label = 0
                 image_steering_label_past = 0
@@ -120,36 +130,33 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                 
                 for top5_id in range(topk):
                     ret_ind = int(retrieval[batch_id, top5_id])
-                    img_steer_lab = trainloader.dataset[ret_ind][1].cpu().numpy() 
+                    img_steer_lab = trainloader.dataset[ret_ind][1].cpu().numpy() # 6x6
                     #img_steer_lab = trainloader.dataset.get_label(retrieval[batch_id, top5_id])[1] #old way
-                    image_steering_label += np.abs((np.array(img_steer_lab) - batch_i_steer)/2.)
-                    image_steering_label_past += np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
-                    image_steering_label_future += np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
+                    image_steering_label += bce(img_steer_lab, batch_i_steer) #np.abs((np.array(img_steer_lab) - batch_i_steer)/2.)
+                    image_steering_label_past += bce(img_steer_lab[0:3], batch_i_steer[0:3]) #np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
+                    image_steering_label_future += bce(img_steer_lab[3:6], batch_i_steer[3:6]) #np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
 
                     nn_steers.append(img_steer_lab)
                     nn_ids.append(ret_ind)
-                
-                steer_eval[dict_index]['nn_steers'] = np.array(nn_steers)
-                steer_eval[dict_index]['nn_ids'] = np.array(nn_ids)
+
+                steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
+                steer_eval[indexes[batch_id]]['nn_ids'] = np.array(nn_ids)
                     
-                image_steering_labels.append(image_steering_label/5)
-                image_steering_labels_past.append(image_steering_label_past/5)
-                image_steering_labels_future.append(image_steering_label_future/5)
+                image_steering_labels.append(image_steering_label/topk)
+                image_steering_labels_past.append(image_steering_label_past/topk)
+                image_steering_labels_future.append(image_steering_label_future/topk)
                 
 
-            
-            with open('steer_eval_epoch{}.pkl'.format(epoch), 'wb') as handle:
-                pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
-                    
+                                
             image_steering_labels = np.array(image_steering_labels)
             image_steering_labels_past = np.array(image_steering_labels_past)
             image_steering_labels_future = np.array(image_steering_labels_future)
             
             #print('image_steering_labels shape: {}'.format(image_steering_labels.shape))
             #print('image_steering_labels numbers: {}'.format(image_steering_labels))
-            image_steering_labels = 1 - image_steering_labels
-            image_steering_labels_past = 1 - image_steering_labels_past
-            image_steering_labels_future = 1 - image_steering_labels_future
+            #image_steering_labels = 1 - image_steering_labels
+            #image_steering_labels_past = 1 - image_steering_labels_past
+            #image_steering_labels_future = 1 - image_steering_labels_future
             
             #print('image_steering_labels numbers 2: {}'.format(image_steering_labels))
             
@@ -164,7 +171,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             #print('indexes shape: {}'.format(indexes.shape))
             #print('indexes numbers: {}'.format(indexes))
 
-            total += indexes.size(0)
+            total += indexes.shape[0]
             #print('retrieval: {}'.format(len(retrieval)))
             #print "targets {}".format(targets.shape)
             #print indexes
@@ -184,7 +191,9 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                   total, testsize, correct*100./total, net_time=net_time, cls_time=cls_time))
 
             
-
+        with open('steer_eval_epoch{}.pkl'.format(epoch), 'wb') as handle:
+             pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                             
         correct_rate = np.array(correct) # Changed this from correct_rate which was not known
         print('correct_rate mean: {}, std: {}'.format(np.mean(correct_rate), np.std(correct_rate)))
 
@@ -241,7 +250,7 @@ def kNN(epoch, net, lemniscate, trainloader, testloader, K, sigma, recompute_mem
         for batch_idx, (input_imgs, targets, indexes) in enumerate(temploader):
             targets = targets.cuda(async=True)
             
-            input_imgs = input_imgs[:,12:18,:,:] #extract only img 3 out of 6
+            input_imgs = input_imgs[:,0:9,:,:] #extract only img 3 out of 6
             targets = targets[:,0:3] #extract steers first 3 out of 6
             
             input_imgs = resize2d(input_imgs, (224,224))
@@ -277,7 +286,7 @@ def kNN(epoch, net, lemniscate, trainloader, testloader, K, sigma, recompute_mem
             og_input_imgs = input_imgs.clone().cpu().numpy()
             og_targets = targets.clone().cpu().numpy()
             
-            input_imgs = input_imgs[:,12:18,:,:] #extract only img 3 out of 6
+            input_imgs = input_imgs[:,0:9,:,:] #extract only img 3 out of 6
             targets = targets[:,0:3] #extract steers first 3 out of 6
             
             batchSize = input_imgs.size(0)
@@ -390,11 +399,11 @@ def kNN(epoch, net, lemniscate, trainloader, testloader, K, sigma, recompute_mem
                 
                 batch_imgs = None
                 og_imgs = [og_input_imgs[batch_id, :,:, 0:3], 
+                           og_input_imgs[batch_id, :,:, 3:6],
                            og_input_imgs[batch_id, :,:, 6:9],
+                           og_input_imgs[batch_id, :,:, 9:12],
                            og_input_imgs[batch_id, :,:, 12:15],
-                           og_input_imgs[batch_id, :,:, 18:21],
-                           og_input_imgs[batch_id, :,:, 24:27],
-                           og_input_imgs[batch_id, :,:, 30:33]]
+                           og_input_imgs[batch_id, :,:, 15:18]]
                 
                 for og_ind, og_img in enumerate(og_imgs):
                     og_img = img_error_bar(og_img, og_targets[batch_id, og_ind], 'green')

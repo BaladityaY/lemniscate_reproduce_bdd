@@ -8,6 +8,7 @@ from random import shuffle
 import os
 from bdd_tools import BDD_Helper
 from docutils.nodes import image
+import random
 
 def get_device(device_id = 0):
     if torch.cuda.is_available():
@@ -70,8 +71,11 @@ class Dataset(data.Dataset):
         self.run_files = []
         self.n_frames = n_frames
         self.all_action_bins = np.zeros(6)
-        
+        self.action_inds = []
+
+        ind_counter = 0
         for filename in self.sort_filelist(data_folder_dir):
+
             print "Processing {} ".format(filename)
            
             database_file = h5py.File(filename, 'r')                        
@@ -81,9 +85,9 @@ class Dataset(data.Dataset):
             actions = BDD_Helper.turn_future_smooth(speeds, 5, 0)
             
             for i in range(len(images)):
-                if i + n_frames >= actions.shape[0]:
+                if i + n_frames >= actions.shape[0]: # Not enough frames left for a full data moment 
                     continue
-                
+
                 moment = Data_Moment(images, speeds, actions, i, i + n_frames, filename)
    
                 action_i = actions[i+2:i+3, :][0]
@@ -92,19 +96,55 @@ class Dataset(data.Dataset):
 
                 #print('ind {} for array: {}'.format(ind_to_change, action_i))
                 
-                if self.all_action_bins[ind_to_change] > 50 + np.min(self.all_action_bins):
-                    continue
+                #if self.all_action_bins[ind_to_change] > 50 + np.min(self.all_action_bins):
+                #    continue
                 
                 self.all_action_bins[ind_to_change] = self.all_action_bins[ind_to_change] + 1
-   
-                if i + n_frames < len(images): 
-                    self.run_files.append(moment)
-                else:
-                    pass
-                    # Not enough frames left for a full data moment
-                    
-            print "Len of run files is {}".format(len(self.run_files))
+
+                self.action_inds.append(ind_to_change)
+
                 
+                ind_counter = ind_counter + 1
+
+                self.run_files.append(moment)
+                
+
+
+        min_count = np.min(self.all_action_bins[self.all_action_bins > 0]) # take min of non-zero bin counts
+
+        print('mean: {}, std: {}, min: {}'.format(np.mean(self.all_action_bins), np.std(self.all_action_bins), min_count))
+
+        print(self.all_action_bins)
+        
+        new_run_files = []
+        new_counts = np.zeros(6)
+        for rf_ind, run_file in enumerate(self.run_files):
+            action_ind = self.action_inds[rf_ind]
+
+            if new_counts[action_ind] >= min_count*3/2:
+                continue
+
+
+            '''
+            if self.all_action_bins[action_ind] > 10*min_count and random.uniform(0,1) < .1:
+                print('skipped')
+                continue
+            '''
+            
+            new_run_files.append(run_file)
+            new_counts[action_ind] = new_counts[action_ind] + 1
+
+        self.run_files = new_run_files
+
+        '''
+        f = plt.figure()
+        f.add_subplot(1,2,1)
+        plt.plot(range(len(self.all_action_bins)), self.all_action_bins)#; plt.show()
+                        
+        f.add_subplot(1,2,2)
+        plt.plot(range(len(new_counts)), new_counts); plt.show()
+        '''
+        
     def __len__(self):
         return len(self.run_files)
 

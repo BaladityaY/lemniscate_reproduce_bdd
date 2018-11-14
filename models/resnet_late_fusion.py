@@ -219,7 +219,7 @@ class ResNet(nn.Module):
 
     def forward(self, imgs, action_probabilities):
         #imgs = imgs[:,6:,:,:]
-        #print("imgs shape: {}".format(imgs.shape))
+        print("imgs shape: {}".format(imgs.shape))
         #print("action_probabilities shape: {}".format(action_probabilities.shape))
         
         imgs = self.conv1(imgs)
@@ -288,8 +288,9 @@ class ResNet(nn.Module):
         #    print('val: {}'.format(steering_hotvecs[0,i,:14,:14]))
         
         # ORIGINAL WAY OF ADDING STEER
+        #print('before: {}'.format(action_probabilities[0]))
         action_probabilities = action_probabilities.view(action_probabilities.size()[0],-1).expand(28,28,-1,-1).permute(2,3,0,1)
-        
+        #print('after: {}'.format(action_probabilities[0]))
         #print action_probabilities
         #print('action_probabilities size: {}'.format(action_probabilities.size()))
         #print('imgs size: {}'.format(imgs.size()))
