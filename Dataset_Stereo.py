@@ -146,6 +146,7 @@ class Dataset(data.Dataset):
                     list_file.create_dataset(str(i)+"/"+"filename",data=moment.filename)
                     list_file.create_dataset(str(i)+"/"+"start_index",data=moment.start_index)
                     list_file.create_dataset(str(i)+"/"+"stop_index",data=moment.stop_index)
+                    list_file.create_dataset(str(i)+"/"+"actions",data=moment.actions)
 
 
         exit()
