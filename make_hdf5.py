@@ -45,13 +45,13 @@ seed = 232323
 batch_size = 1
 train_dataset = Dataset(traindir, n_frames)
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=j)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=j)
 torch.manual_seed(seed)
 
 valdir = sys.argv[3]
 val_dataset = Dataset(valdir, n_frames)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, 
-                                         shuffle=True, num_workers=j)
+                                         shuffle=False, num_workers=j)
 
 ndata = train_dataset.__len__()
 nce_k = 4096
@@ -76,7 +76,6 @@ all_steer_preds = []
 all_losses = []
 all_steer_diffs = []
 all_yds = []
-all_yis = []
 
 trainFeatures = lemniscate.memory.t()
 trainLabels = torch.LongTensor(train_loader.dataset.train_labels).cuda()
@@ -84,8 +83,8 @@ trainLabels = torch.LongTensor(train_loader.dataset.train_labels).cuda()
 for i, (input_imgs, input_steerings, indices) in enumerate(val_loader):
 
     # DEBUG TEST WRITING
-    #if i > 5:
-    #    break
+    if i > 5:
+        break
     og_input_steerings = input_steerings.clone().cpu().numpy()
 
     input_imgs = input_imgs[:,0:9,:,:] #extract only img 3 out of 6
@@ -108,17 +107,18 @@ for i, (input_imgs, input_steerings, indices) in enumerate(val_loader):
     retrieval = torch.gather(candidates, 1, yi)
 
     retrieval = retrieval.narrow(1, 0, n_neighbours).clone().cpu().numpy()#.view(-1)
+    
     yd = yd.narrow(1, 0, n_neighbours)
-
+    
     batch_img_names = []
     batch_id_nums = []
     batch_steer_truths = []
     batch_steer_preds = []
+    batch_yds = []
     
-    
-
     for batch_id in range(len(input_imgs)):
         batch_i_steer = og_input_steerings[batch_id,:]
+        batch_yds.append(yd[batch_id].data.cpu().numpy())
         
         ret_img_names = []
         ret_id_nums = []
@@ -139,15 +139,16 @@ for i, (input_imgs, input_steerings, indices) in enumerate(val_loader):
         batch_id_nums.append(ret_id_nums)
         batch_steer_truths.append(batch_i_steer)
         batch_steer_preds.append(ret_steer_preds)
+    
 
     batch_img_names = np.array(batch_img_names)
     batch_id_nums = np.array(batch_id_nums)
     batch_steer_truths = np.array(batch_steer_truths)
     batch_steer_preds = np.array(batch_steer_preds)
     batch_losses = np.array(loss.cpu().data)
-   
-    all_yis.append(yi.data.cpu().numpy())
-    all_yds.append(yd.data.cpu().numpy())
+    batch_yds = np.array(batch_yds)
+    
+    all_yds.append(batch_yds)
     all_img_names.append(batch_img_names)
     all_id_nums.append(batch_id_nums)
     all_steer_truths.append(batch_steer_truths)
@@ -169,7 +170,6 @@ hf.create_dataset('all_steer_truths', data=all_steer_truths)
 hf.create_dataset('all_steer_preds', data=all_steer_preds)
 hf.create_dataset('all_losses', data=all_losses)
 hf.create_dataset('all_steer_diffs', data=all_steer_diffs)
-hf.create_dataset('all_yis', data=all_yis)
 hf.create_dataset('all_yds', data=all_yds)
 
 
