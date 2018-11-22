@@ -186,11 +186,10 @@ class Dataset(data.Dataset):
 if __name__ == '__main__':
     import cv2
     train_dataset = Dataset("/home/sascha/for_bdd_training/smaller_dataset/train",6)
-    exit()
     
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
+    tmp_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
-    for i, (images, actions, index) in enumerate(train_loader):
+    for i, (images, actions, index) in enumerate(tmp_loader):
         print actions
         img = images[0][6:9].data.cpu().numpy()
         img = img.transpose((1,2,0))+0.5
