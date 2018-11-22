@@ -45,7 +45,7 @@ seed = 232323
 batch_size = 1
 train_dataset = Dataset(traindir, n_frames)
 
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=j)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=j)
 torch.manual_seed(seed)
 
 valdir = sys.argv[3]
@@ -83,8 +83,8 @@ trainLabels = torch.LongTensor(train_loader.dataset.train_labels).cuda()
 for i, (input_imgs, input_steerings, indices) in enumerate(val_loader):
 
     # DEBUG TEST WRITING
-    if i > 5:
-        break
+#     if i > 5:
+#         break
     og_input_steerings = input_steerings.clone().cpu().numpy()
 
     input_imgs = input_imgs[:,0:9,:,:] #extract only img 3 out of 6
@@ -160,16 +160,13 @@ all_id_nums = np.array(all_id_nums)
 all_steer_truths = np.array(all_steer_truths)
 all_steer_preds = np.array(all_steer_preds)
 all_losses = np.array(all_losses)
-all_steer_diffs = np.array(all_steer_diffs)
-
-
 
 hf.create_dataset('all_img_names', data=all_img_names)
 hf.create_dataset('all_id_nums', data=all_id_nums)
 hf.create_dataset('all_steer_truths', data=all_steer_truths)
 hf.create_dataset('all_steer_preds', data=all_steer_preds)
 hf.create_dataset('all_losses', data=all_losses)
-hf.create_dataset('all_steer_diffs', data=all_steer_diffs)
+
 hf.create_dataset('all_yds', data=all_yds)
 
 
