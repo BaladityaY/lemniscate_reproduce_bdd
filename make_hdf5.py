@@ -84,8 +84,8 @@ trainLabels = torch.LongTensor(train_loader.dataset.train_labels).cuda()
 for i, (input_imgs, input_steerings, indices) in enumerate(val_loader):
 
     # DEBUG TEST WRITING
-    if i > 5:
-        break
+    #if i > 5:
+    #    break
     og_input_steerings = input_steerings.clone().cpu().numpy()
 
     input_imgs = input_imgs[:,0:9,:,:] #extract only img 3 out of 6
