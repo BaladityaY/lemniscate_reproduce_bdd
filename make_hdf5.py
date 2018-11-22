@@ -1,4 +1,4 @@
-#import numpy as np
+import numpy as np
 import h5py
 
 import torch
@@ -6,7 +6,6 @@ import models
 import os
 from Dataset_Stereo import Dataset
 #from torch.autograd.variable import Variable
-#import numpy as np
 import sys
 from util_moduls.Utils import get_device
 #from lib.NCEAverage import NCEAverage
@@ -38,19 +37,19 @@ for k, v in state_dict.items():
 # load params
 model.load_state_dict(new_state_dict)
 
-traindir = os.path.join(sys.argv[2], 'train')
+traindir = sys.argv[2]
 n_frames = 6
 gpu = 0
 j = 0
 seed = 232323
 batch_size = 1
-train_dataset = Dataset(traindir, n_frames, 1, gpu)
+train_dataset = Dataset(traindir, n_frames)
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=j)
 torch.manual_seed(seed)
 
-valdir = os.path.join(sys.argv[3], 'val')
-val_dataset = Dataset(valdir, n_frames, 1, gpu)
+valdir = sys.argv[3]
+val_dataset = Dataset(valdir, n_frames)
 val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, 
                                          shuffle=True, num_workers=j)
 
@@ -82,9 +81,12 @@ trainLabels = torch.LongTensor(train_loader.dataset.train_labels).cuda()
 
 for i, (input_imgs, input_steerings, indices) in enumerate(val_loader):
 
+    # DEBUG TEST WRITING
+#     if i > 5:
+#         break
     og_input_steerings = input_steerings.clone().cpu().numpy()
 
-    input_imgs = input_imgs[:,6:9,:,:] #extract only img 3 out of 6
+    input_imgs = input_imgs[:,0:9,:,:] #extract only img 3 out of 6
     input_steerings = input_steerings[:,0:3] #extract steers first 3 out of 6
 
     indices = indices.to(get_device(gpu))
@@ -99,11 +101,11 @@ for i, (input_imgs, input_steerings, indices) in enumerate(val_loader):
 
     dist = torch.mm(features, trainFeatures)
 
-    yd, yi = dist.topk(5, dim=1, largest=True, sorted=True)
+    yd, yi = dist.topk(n_neighbours, dim=1, largest=True, sorted=True)
     candidates = trainLabels.view(1,-1).expand(batchSize, -1)
     retrieval = torch.gather(candidates, 1, yi)
 
-    retrieval = retrieval.narrow(1, 0, 5).clone().cpu().numpy()#.view(-1)
+    retrieval = retrieval.narrow(1, 0, n_neighbours).clone().cpu().numpy()#.view(-1)
     yd = yd.narrow(1, 0, 5)
 
     batch_img_names = []
@@ -123,8 +125,8 @@ for i, (input_imgs, input_steerings, indices) in enumerate(val_loader):
         image_steering_label = []
         steer_diff = 0
 
-        for top5_id in range(n_neighbours):
-            ret_ind = retrieval[batch_id, top5_id]
+        for top_n_id in range(n_neighbours):
+            ret_ind = retrieval[batch_id, top_n_id]
             img_steer_lab = train_loader.dataset[ret_ind][1].cpu().numpy()
             
             ret_img_names.append(train_loader.dataset.run_files[ret_ind].filename)
