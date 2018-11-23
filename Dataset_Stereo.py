@@ -137,19 +137,19 @@ class Dataset(data.Dataset):
         self.run_files = new_run_files
         
         
-#         with h5py.File("filename_index_list.h5",'w') as list_file:
-#     
-#             for i, moment in enumerate(self.run_files):
-#                 #{'filename':filename,'start_index':i,'end_index':i+n_frames}
-#                 
-#                 
-#                     list_file.create_dataset(str(i)+"/"+"filename",data=moment.filename)
-#                     list_file.create_dataset(str(i)+"/"+"start_index",data=moment.start_index)
-#                     list_file.create_dataset(str(i)+"/"+"stop_index",data=moment.stop_index)
-#                     list_file.create_dataset(str(i)+"/"+"actions",data=moment.actions)
-# 
-# 
-#         exit()
+        with h5py.File("filename_index_list.h5",'w') as list_file:
+     
+            for i, moment in enumerate(self.run_files):
+                #{'filename':filename,'start_index':i,'end_index':i+n_frames}
+                 
+                 
+                    list_file.create_dataset(str(i)+"/"+"filename",data=moment.filename)
+                    list_file.create_dataset(str(i)+"/"+"start_index",data=moment.start_index)
+                    list_file.create_dataset(str(i)+"/"+"stop_index",data=moment.stop_index)
+                    list_file.create_dataset(str(i)+"/"+"actions",data=moment.actions)
+ 
+ 
+        exit()
         '''
         f = plt.figure()
         f.add_subplot(1,2,1)
