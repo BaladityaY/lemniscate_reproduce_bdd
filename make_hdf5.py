@@ -35,7 +35,7 @@ for k, v in state_dict.items():
     new_state_dict[name] = v
 
 # load params
-model.load_state_dict(new_state_dict)
+model.load_state_dict(state_dict)
 
 traindir = sys.argv[2]
 n_frames = 6
