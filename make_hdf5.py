@@ -87,7 +87,7 @@ for i, (input_imgs, input_steerings, indices) in enumerate(val_loader):
 #         break
     og_input_steerings = input_steerings.clone().cpu().numpy()
 
-    input_imgs = input_imgs[:,0:9,:,:] #extract only img 3 out of 6
+    input_imgs = input_imgs[:,0:9,:,:] 
     input_steerings = input_steerings[:,0:3] #extract steers first 3 out of 6
 
     indices = indices.to(get_device(gpu))

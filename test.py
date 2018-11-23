@@ -16,7 +16,9 @@ import scipy
 from scipy import stats
 
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
-import torch.nn as nn, criterion = nn.CrossEntropyLoss()
+import torch.nn as nn
+
+criterion = nn.CrossEntropyLoss()
 
 def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,volatile=True), size)).data
