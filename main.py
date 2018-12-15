@@ -30,7 +30,7 @@ from test import NN, kNN
 from Dataset_Stereo import Dataset
 from torch.autograd.variable import Variable
 
-#os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -144,8 +144,8 @@ def main():
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    train_dataset = Dataset(traindir, n_frames)
-    val_dataset = Dataset(valdir, n_frames)
+    train_dataset = Dataset(traindir, n_frames, framerate=4)
+    val_dataset = Dataset(valdir, n_frames, framerate=4)
 
 
     train_loader = torch.utils.data.DataLoader(
@@ -175,7 +175,7 @@ def main():
             print("=> loading checkpoint '{}'".format(args.resume))
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
-            best_prec1 = checkpoint['best_prec1']
+            #best_prec1 = int(checkpoint['best_prec1'])
             model.load_state_dict(checkpoint['state_dict'])
             lemniscate = checkpoint['lemniscate']
             optimizer.load_state_dict(checkpoint['optimizer'])
@@ -254,7 +254,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
     
     
     for i, (input_imgs,action_probabilities, indices) in enumerate(train_loader):
-        
+        print('i: {}'.format(i))
         # measure data loading time
         data_time.update(time.time() - end)
 
