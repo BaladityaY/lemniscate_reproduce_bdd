@@ -9,6 +9,7 @@ import os
 from bdd_tools import BDD_Helper
 from docutils.nodes import image
 import random
+import bdd_tools
 
 def get_device(device_id = 0):
     if torch.cuda.is_available():
@@ -23,11 +24,10 @@ def get_device(device_id = 0):
 
 class Data_Moment():
     
-    def __init__(self, images, speeds, start_index, stop_index, filename, framerate=1):
+    def __init__(self, images, speeds, start_index, stop_index, filename):
         diff = stop_index - start_index
-        self.images = images[start_index:stop_index*framerate][np.arange(diff)*framerate]
-        
-        self.speeds = speeds[start_index:stop_index*framerate][np.arange(diff)*framerate]
+        self.images = images[start_index:stop_index][np.arange(diff)]        
+        self.speeds = speeds[start_index:stop_index][np.arange(diff)]
         
         self.filename = filename
         
@@ -69,22 +69,23 @@ class Dataset(data.Dataset):
         
         self.run_files = []
         
-        self.all_action_bins = np.zeros(6)
-        self.action_inds = []
-        self.framerate = framerate
-
         for filename in self.sort_filelist(data_folder_dir):
 
-            print "Processing {} ".format(filename)
-           
+            print("Processing {} ".format(filename))
+                       
             database_file = h5py.File(filename, 'r')                        
             
             images = database_file['image']['encoded']
             speeds = np.reshape(database_file['image']['speeds'][:], [-1, 2])
+            #course_list = BDD_Helper.to_course_list(speeds)
+            #speed_list = np.linalg.norm(speeds, axis=1)
+            #course_speed = np.array(zip(course_list,speed_list))
+            course_speed = speeds
+            
             
             for i in range(len(images)):
                 
-                moment = Data_Moment(images, speeds, i, i + 1, filename, framerate)
+                moment = Data_Moment(images, course_speed, i, i + 1, filename, framerate)
    
                 self.run_files.append(moment)
                 
@@ -106,8 +107,10 @@ class Dataset(data.Dataset):
         camera_data = torch.transpose(camera_data, 0, 2)
         camera_data = torch.transpose(camera_data, 1, 2)
         
-        speeds = torch.FloatTensor(data_moment.data_point()['speeds'][frame]).to(get_device())
-
+        #speeds = torch.FloatTensor(data_moment.data_point()['speeds'][frame]).to(get_device())
+        #speeds = BDD_Helper
+        
+        speeds = None
         return camera_data, speeds, index
     
     @property
@@ -121,7 +124,6 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
     for i, (images, speeds, index) in enumerate(train_loader):
-        
         img = images[0].data.cpu().numpy()
         img = img.transpose((1,2,0))+0.5
         cv2.imshow("Test", img)
