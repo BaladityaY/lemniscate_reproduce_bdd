@@ -25,9 +25,9 @@ def get_device(device_id = 0):
 class Data_Moment():
     
     def __init__(self, images, speeds, start_index, stop_index, filename):
-        diff = stop_index - start_index
-        self.images = images[start_index:stop_index][np.arange(diff)]        
-        self.speeds = speeds[start_index:stop_index][np.arange(diff)]
+        
+        self.images = images        
+        self.speeds = speeds
         
         self.filename = filename
         
@@ -38,8 +38,8 @@ class Data_Moment():
         return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]      
     
     def data_point(self):     
-        return {'imgs':self.convert_images(self.images),  
-                'speeds':self.speeds}
+        return {'imgs':self.convert_images(self.images[self.start_index:self.stop_index][np.arange(self.stop_index - self.start_index)]),  
+                'speeds':self.speeds[self.start_index:self.stop_index][np.arange(self.stop_index - self.start_index)]}
     
 
 class Dataset(data.Dataset):
@@ -65,7 +65,7 @@ class Dataset(data.Dataset):
         
     
     
-    def __init__(self, data_folder_dir, framerate=1):
+    def __init__(self, data_folder_dir, n_frames = 1,framerate=1):
         
         self.run_files = []
         
@@ -77,16 +77,9 @@ class Dataset(data.Dataset):
             
             images = database_file['image']['encoded']
             speeds = np.reshape(database_file['image']['speeds'][:], [-1, 2])
-            #course_list = BDD_Helper.to_course_list(speeds)
-            #speed_list = np.linalg.norm(speeds, axis=1)
-            #course_speed = np.array(zip(course_list,speed_list))
-            course_speed = speeds
-            
             
             for i in range(len(images)):
-                
-                moment = Data_Moment(images, course_speed, i, i + 1, filename, framerate)
-   
+                moment = Data_Moment(images, speeds, i, i + n_frames, filename)   
                 self.run_files.append(moment)
                 
         
@@ -107,10 +100,9 @@ class Dataset(data.Dataset):
         camera_data = torch.transpose(camera_data, 0, 2)
         camera_data = torch.transpose(camera_data, 1, 2)
         
-        #speeds = torch.FloatTensor(data_moment.data_point()['speeds'][frame]).to(get_device())
-        #speeds = BDD_Helper
+        speeds = torch.FloatTensor(data_moment.data_point()['speeds'][frame]).to(get_device())
+        speeds = BDD_Helper.
         
-        speeds = None
         return camera_data, speeds, index
     
     @property
@@ -119,7 +111,7 @@ class Dataset(data.Dataset):
 
 if __name__ == '__main__':
     import cv2
-    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",6)
+    train_dataset = Dataset("/home/sascha/for_bdd_training/smaller_dataset/train",6)
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
