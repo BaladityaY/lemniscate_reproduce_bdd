@@ -23,7 +23,7 @@ def get_device(device_id = 0):
 
 class Data_Moment():
     
-    def __init__(self, images, speeds, start_index, stop_index, filename, framerate=1):
+    def __init__(self, images, speeds, start_index, n_frames, frame_gap, filename):
         
         self.images = images
         self.speeds = speeds
@@ -31,27 +31,34 @@ class Data_Moment():
         self.filename = filename
         
         self.start_index = start_index
-        self.stop_index = stop_index
-        self.framerate = framerate        
+        self.stop_index = self.start_index + (n_frames*frame_gap)
+        self.frame_gap = frame_gap
         
     def convert_images(self, encoded_images):
         return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]      
     
     def data_point(self):     
-        # First reformat speeds to pairs from one original sequence which has twice the length
-        # as the images
         
-        speeds = np.reshape(self.speeds[self.start_index*2:self.stop_index*2], [-1, 2])
-        # Then retrieve every n+th pair, depending on the framerate
-        speeds = speeds[np.arange(self.stop_index-self.start_index)*self.framerate]
+        indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
+        print indices
+        # Speeds are one list, twice the size of images, because they are flattened out pairs of values.
+        # They have to be reshaped to be pairs. It would be possible to select first the range on where
+        # to do the reshape operation and then do it though it is assumed the operation takes about the
+        # same time so we first reshape because then indexing becomes easier, as it is equal to image indexing.
+        speeds = np.reshape(self.speeds, [-1, 2])
+        
+        speeds = speeds[indices]
         
         velocities = np.array(np.linalg.norm(speeds,axis=1),dtype=np.float32)
         course_list = np.array(BDD_Helper.to_course_list(speeds),dtype=np.float32)
+        #print course_list
+        #print np.diff(course_list)
+        #exit()
         velocities_courses = np.array(zip(velocities,course_list))
         
-        # For images, just select it appropriately for the given range and framerate
-        images = self.images[self.start_index:self.stop_index]
-        images = images[np.arange(self.stop_index-self.start_index)*self.framerate]
+        # Images have to be re-formatted into a numpy array because the special indexing does
+        # not work on hdf5 files
+        images = self.images[:][indices]
         
         return {'imgs':self.convert_images(images),  
                 'vel_course_pairs':velocities_courses}
@@ -77,7 +84,7 @@ class Dataset(data.Dataset):
                             
         return sorted(file_list,key=self.sort_folder_ft)
     
-    def __init__(self, data_folder_dir, n_frames, framerate=1):
+    def __init__(self, data_folder_dir, n_frames, frame_gap):
         
         self.run_files = []
         self.n_frames = n_frames
@@ -97,12 +104,13 @@ class Dataset(data.Dataset):
             for i in range(len(images)):
                 
                 start_index = i
-                end_index = i+n_frames
                 
-                if (len(images) - start_index) < n_frames:
-                    continue
+                moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename)
                 
-                moment = Data_Moment(images, speeds, start_index, end_index, filename, framerate)
+                if moment is None:
+                    # At the end of a sequence no full scene can be compiled
+                    break                
+                
                 self.run_files.append(moment)
                 
 
@@ -138,14 +146,16 @@ class Dataset(data.Dataset):
 
 if __name__ == '__main__':
     import cv2
-    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",6)
+    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",6,frame_gap=1)
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
     for i, (images, vel_course, index) in enumerate(train_loader):
-        print vel_course
-        img = images[0][6:9].data.cpu().numpy()
-        img = img.transpose((1,2,0))+0.5
-        cv2.imshow("Test", img)
-        cv2.waitKey(30)
+        
+        for frame in np.split(images[0],6):
+            print frame.shape
+            img = frame.data.cpu().numpy()
+            img = img.transpose((1,2,0))+0.5
+            cv2.imshow("Test", img)
+            cv2.waitKey(90)
     
