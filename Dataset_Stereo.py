@@ -23,24 +23,32 @@ def get_device(device_id = 0):
 
 class Data_Moment():
     
-    def __init__(self, images, speeds, actions, start_index, stop_index, filename):
+    def __init__(self, images, speeds, start_index, stop_index, filename, framerate=1):
         
-        self.images = images[start_index:stop_index]
-        self.actions = actions[start_index:stop_index]
-        self.speeds = speeds[start_index:stop_index]
+        self.images = images
+        self.speeds = speeds
         
         self.filename = filename
         
         self.start_index = start_index
         self.stop_index = stop_index
-    
+        self.framerate = framerate        
+        
     def convert_images(self, encoded_images):
         return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]      
     
     def data_point(self):     
-        return {'imgs':self.convert_images(self.images), 
-                'actions':self.actions, 
-                'speeds':self.speeds}
+        # First reformat speeds to pairs from one original sequence which has twice the length
+        # as the images
+        speeds = np.reshape(self.speeds[self.start_index:self.stop_index*2], [-1, 2])
+        # Then retrieve every n+th pair, depending on the framerate
+        speeds = speeds[np.arange(self.stop_index-self.start_index)*self.framerate]
+        # For images, just select it appropriately for the given range and framerate
+        images = self.images[self.start_index:self.stop_index]
+        images = images[np.arange(self.stop_index-self.start_index)*self.framerate]
+        
+        return {'imgs':self.convert_images(images),  
+                'speeds':speeds}
     
 
 class Dataset(data.Dataset):
@@ -62,18 +70,12 @@ class Dataset(data.Dataset):
                     file_list.append(filename)
                             
         return sorted(file_list,key=self.sort_folder_ft)
-        
-        
-    
     
     def __init__(self, data_folder_dir, n_frames):
         
         self.run_files = []
         self.n_frames = n_frames
-        self.all_action_bins = np.zeros(6)
-        self.action_inds = []
 
-        ind_counter = 0
         for filename in self.sort_filelist(data_folder_dir):
 
             print "Processing {} ".format(filename)
@@ -81,31 +83,17 @@ class Dataset(data.Dataset):
             database_file = h5py.File(filename, 'r')                        
             
             images = database_file['image']['encoded']
-            speeds = np.reshape(database_file['image']['speeds'][:], [-1, 2])
-            actions = BDD_Helper.turn_future_smooth(speeds, 5, 0)
+            # Note that speeds is twice the length of images because there are two values for each image.
+            # However, if that is reformatted here, then this won't save hdf5 dataset references but instead
+            # numpy arrays which is too costly in terms of speed and memory
+            speeds = database_file['image']['speeds']
             
             for i in range(len(images)):
                 if i + n_frames >= actions.shape[0]: # Not enough frames left for a full data moment 
                     continue
 
-                moment = Data_Moment(images, speeds, actions, i, i + n_frames, filename)
+                moment = Data_Moment(images, speeds, i, i + n_frames, filename)
    
-                action_i = actions[i+2:i+3, :][0]
-                action_i[action_i > 0] = 1.
-                ind_to_change = np.where(action_i == 1.)[0][0]
-
-                #print('ind {} for array: {}'.format(ind_to_change, action_i))
-                
-                #if self.all_action_bins[ind_to_change] > 50 + np.min(self.all_action_bins):
-                #    continue
-                
-                self.all_action_bins[ind_to_change] = self.all_action_bins[ind_to_change] + 1
-
-                self.action_inds.append(ind_to_change)
-
-                
-                ind_counter = ind_counter + 1
-
                 self.run_files.append(moment)
                 
 
@@ -151,6 +139,9 @@ class Dataset(data.Dataset):
     def __getitem__(self, index):
         data_moment = self.run_files[index]
         camera_data = torch.FloatTensor().to(get_device())
+
+
+
         
         for frame in range(self.n_frames): 
             
