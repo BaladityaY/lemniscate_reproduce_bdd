@@ -40,15 +40,21 @@ class Data_Moment():
     def data_point(self):     
         # First reformat speeds to pairs from one original sequence which has twice the length
         # as the images
-        speeds = np.reshape(self.speeds[self.start_index:self.stop_index*2], [-1, 2])
+        
+        speeds = np.reshape(self.speeds[self.start_index*2:self.stop_index*2], [-1, 2])
         # Then retrieve every n+th pair, depending on the framerate
         speeds = speeds[np.arange(self.stop_index-self.start_index)*self.framerate]
+        
+        velocities = np.array(np.linalg.norm(speeds,axis=1),dtype=np.float32)
+        course_list = np.array(BDD_Helper.to_course_list(speeds),dtype=np.float32)
+        velocities_courses = np.array(zip(velocities,course_list))
+        
         # For images, just select it appropriately for the given range and framerate
         images = self.images[self.start_index:self.stop_index]
         images = images[np.arange(self.stop_index-self.start_index)*self.framerate]
         
         return {'imgs':self.convert_images(images),  
-                'speeds':speeds}
+                'vel_course_pairs':velocities_courses}
     
 
 class Dataset(data.Dataset):
@@ -71,7 +77,7 @@ class Dataset(data.Dataset):
                             
         return sorted(file_list,key=self.sort_folder_ft)
     
-    def __init__(self, data_folder_dir, n_frames):
+    def __init__(self, data_folder_dir, n_frames, framerate=1):
         
         self.run_files = []
         self.n_frames = n_frames
@@ -89,49 +95,17 @@ class Dataset(data.Dataset):
             speeds = database_file['image']['speeds']
             
             for i in range(len(images)):
-                if i + n_frames >= actions.shape[0]: # Not enough frames left for a full data moment 
+                
+                start_index = i
+                end_index = i+n_frames
+                
+                if (len(images) - start_index) < n_frames:
                     continue
-
-                moment = Data_Moment(images, speeds, i, i + n_frames, filename)
-   
+                
+                moment = Data_Moment(images, speeds, start_index, end_index, filename, framerate)
                 self.run_files.append(moment)
                 
 
-
-        min_count = np.min(self.all_action_bins[self.all_action_bins > 0]) # take min of non-zero bin counts
-
-        print('mean: {}, std: {}, min: {}'.format(np.mean(self.all_action_bins), np.std(self.all_action_bins), min_count))
-
-        print(self.all_action_bins)
-        
-        new_run_files = []
-        new_counts = np.zeros(6)
-        for rf_ind, run_file in enumerate(self.run_files):
-            action_ind = self.action_inds[rf_ind]
-
-            if new_counts[action_ind] >= min_count*3/2:
-                continue
-
-
-            '''
-            if self.all_action_bins[action_ind] > 10*min_count and random.uniform(0,1) < .1:
-                print('skipped')
-                continue
-            '''
-            
-            new_run_files.append(run_file)
-            new_counts[action_ind] = new_counts[action_ind] + 1
-
-        self.run_files = new_run_files
-
-        '''
-        f = plt.figure()
-        f.add_subplot(1,2,1)
-        plt.plot(range(len(self.all_action_bins)), self.all_action_bins)#; plt.show()
-                        
-        f.add_subplot(1,2,2)
-        plt.plot(range(len(new_counts)), new_counts); plt.show()
-        '''
         
     def __len__(self):
         return len(self.run_files)
@@ -139,9 +113,6 @@ class Dataset(data.Dataset):
     def __getitem__(self, index):
         data_moment = self.run_files[index]
         camera_data = torch.FloatTensor().to(get_device())
-
-
-
         
         for frame in range(self.n_frames): 
             
@@ -152,9 +123,14 @@ class Dataset(data.Dataset):
         camera_data = torch.transpose(camera_data, 0, 2)
         camera_data = torch.transpose(camera_data, 1, 2)
 
-        all_actions = torch.from_numpy(data_moment.data_point()['actions'][:]).float().to(get_device()) 
+        vel_course_pairs = torch.from_numpy(data_moment.data_point()['vel_course_pairs']).float().to(get_device()) 
         
-        return camera_data, all_actions, index
+        for i, value in enumerate(vel_course_pairs[:,1]):
+            if np.isnan(value):
+                vel_course_pairs[i][1] = np.random.uniform(0,2*np.pi)
+        #vel_course_pairs[:,1][np.isnan(vel_course_pairs[:,1])] = np.random.uniform(0,2*np.pi) 
+        
+        return camera_data, vel_course_pairs, index
     
     @property
     def train_labels(self):
@@ -166,10 +142,10 @@ if __name__ == '__main__':
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
-    for i, (images, actions, index) in enumerate(train_loader):
-        print actions
+    for i, (images, vel_course, index) in enumerate(train_loader):
+        print vel_course
         img = images[0][6:9].data.cpu().numpy()
         img = img.transpose((1,2,0))+0.5
         cv2.imshow("Test", img)
-        cv2.waitKey(60)
+        cv2.waitKey(30)
     
