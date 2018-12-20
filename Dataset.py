@@ -62,7 +62,7 @@ class Data_Moment():
         course_list = np.array(BDD_Helper.to_course_list(speeds),dtype=np.float32)
         course_list = np.diff(course_list)
         
-        velocities_courses = np.array(zip(velocities,course_list))
+        velocities_courses = np.array(list(zip(velocities,course_list)))
         
         # Images have to be re-formatted into a numpy array because the special indexing does
         # not work on hdf5 files
@@ -99,7 +99,7 @@ class Dataset(data.Dataset):
 
         for filename in self.sort_filelist(data_folder_dir):
 
-            print "Processing {} ".format(filename)
+            print("Processing {} ".format(filename))
            
             database_file = h5py.File(filename, 'r')                        
             
@@ -117,7 +117,7 @@ class Dataset(data.Dataset):
                 
                 if moment.invalid:
                     # At the end of a sequence no full scene can be compiled
-                    print "Moment too short"
+                    print("Moment too short")
                     break                
                 
                 self.run_files.append(moment)
@@ -138,7 +138,7 @@ class Dataset(data.Dataset):
         camera_data = camera_data.float() / 255. - 0.5
         camera_data = torch.transpose(camera_data, 0, 2)
         camera_data = torch.transpose(camera_data, 1, 2)
-
+        
         vel_course_pairs = torch.from_numpy(data_moment.data_point()['vel_course_pairs']).float().to(get_device()) 
         
         # If there is no movement, course information become NAN. This is most likely because they calculate it 
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         
         img = images[0][6:9].data.cpu().numpy()
         img = img.transpose((1,2,0))+0.5
-        print vel_course
+        print(vel_course)
         cv2.imshow("Test", img)
         cv2.waitKey(3)
 

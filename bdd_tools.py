@@ -10,8 +10,9 @@ Original code at: https://github.com/gy20073/BDD_Driving_Model by gy20073
 '''
 import math
 import numpy as np
+import sys
 
-
+py3 = True if sys.version_info >= (3, 0) else False
 
 ego_previous_nstep = 30
 n_sub_frame = 108
@@ -37,8 +38,12 @@ class BDD_Helper(object):
               'turn_left': 2, 'turn_right': 3,
               'turn_left_slight': 4, 'turn_right_slight': 5,} #'acceleration': 6, 'deceleration': 7}
     
-    turn_int2str={y: x for x, y in turn_str2int.iteritems()}
-    naction = np.sum(np.less_equal(0, np.array(turn_str2int.values())))
+    if py3:
+        turn_int2str={y: x for x, y in turn_str2int.items()}
+    else:
+        turn_int2str={y: x for x, y in turn_str2int.iteritems()}
+    
+    naction = np.sum(np.less_equal(0, np.array(list(turn_str2int.values()))))
     
     @staticmethod
     def future_smooth(actions, naction, nfuture):
@@ -182,7 +187,3 @@ class BDD_Helper(object):
     
 
 
-if __name__ == '__main__':
-    print "test"
-    print BDD_Helper.turn_str2int
-    pass
