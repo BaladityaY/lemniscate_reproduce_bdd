@@ -92,7 +92,7 @@ class Dataset(data.Dataset):
                             
         return sorted(file_list,key=self.sort_folder_ft)
     
-    def __init__(self, data_folder_dir, n_frames, frame_gap):
+    def __init__(self, data_folder_dir, n_frames=6, frame_gap=4):
         
         self.run_files = []
         self.n_frames = n_frames
