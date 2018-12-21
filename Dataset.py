@@ -28,6 +28,11 @@ class Data_Moment():
         There can be no calculation with content of the hdf5 file or a selection of ranges here
         because that will slow down loading and put a lot of data in memory
         '''
+        # Because the change of course is calculated, we need n+1 datapoint to calculate
+        # n course changes. This is done by increasing the length of a data moment and
+        # then throwing the first frame away
+        n_frames += 1
+        
         self.images = images
         self.speeds = speeds
         
@@ -48,15 +53,17 @@ class Data_Moment():
     
     def data_point(self):     
         
-        indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
+        img_indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
+        img_indices = np.delete(img_indices,0)
+        
+        speed_indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
         
         # Speeds are one list, twice the size of images, because they are flattened out pairs of values.
         # They have to be reshaped to be pairs. It would be possible to select first the range on where
         # to do the reshape operation and then do it though it is assumed the operation takes about the
         # same time so we first reshape because then indexing becomes easier, as it is equal to image indexing.
         speeds = np.reshape(self.speeds, [-1, 2])
-        
-        speeds = speeds[indices]
+        speeds = speeds[speed_indices]
         
         velocities = np.array(np.linalg.norm(speeds,axis=1),dtype=np.float32)
         course_list = np.array(BDD_Helper.to_course_list(speeds),dtype=np.float32)
@@ -66,7 +73,7 @@ class Data_Moment():
         
         # Images have to be re-formatted into a numpy array because the special indexing does
         # not work on hdf5 files
-        images = self.images[:][indices]
+        images = self.images[:][img_indices]
         
         return {'imgs':self.convert_images(images),  
                 'vel_course_pairs':velocities_courses}
@@ -80,7 +87,7 @@ class Dataset(data.Dataset):
         '''
         return s.split('/')[-2]+'/'+s.split('/')[-1]
         
-    def sort_filelist(self,data_folder_dir):
+    def get_sorted_filelist(self,data_folder_dir):
         
         file_list = []
         for path, subdirs, files in os.walk(data_folder_dir,followlinks=True):
@@ -97,7 +104,9 @@ class Dataset(data.Dataset):
         self.run_files = []
         self.n_frames = n_frames
 
-        for filename in self.sort_filelist(data_folder_dir):
+        # We need to ensure one fixed not randomized order of images because the approach has to index
+        # the images always in the same way and os.walk does not ensure one fixed order
+        for filename in self.get_sorted_filelist(data_folder_dir):
 
             print("Processing {} ".format(filename))
            
@@ -147,8 +156,8 @@ class Dataset(data.Dataset):
         for i, value in enumerate(vel_course_pairs[:,1]):
             if np.isnan(value):
                 vel_course_pairs[i][1] = 0.
-         
-        
+        print camera_data.size()
+        print vel_course_pairs.size()
         return camera_data, vel_course_pairs, index
     
     @property

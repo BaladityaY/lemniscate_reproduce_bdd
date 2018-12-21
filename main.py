@@ -27,7 +27,7 @@ from lib.LinearAverage import LinearAverage
 from lib.NCECriterion import NCECriterion
 from lib.utils import AverageMeter
 from test import NN, kNN
-from Dataset_Stereo import Dataset
+from Dataset import Dataset
 from torch.autograd.variable import Variable
 
 #os.environ["CUDA_VISIBLE_DEVICES"]="0"
@@ -265,6 +265,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         # The images are now already in the right size
         
         input_imgs = input_imgs[:,0:9,:,:] #extract the first 3 images
+        print "Action size {}".format(action_probabilities.size())
         action_probabilities = action_probabilities[:,0:3] #extract steers first 3 out of 6 
         #print("input_imgs shape: {}".format(input_imgs.shape))
         #print("action_probabilities shape: {}".format(action_probabilities.shape))
