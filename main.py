@@ -147,7 +147,6 @@ def main():
     train_dataset = Dataset(traindir, n_frames)
     val_dataset = Dataset(valdir, n_frames)
 
-
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, #(train_sampler is None), 
         num_workers=args.workers)
@@ -265,14 +264,9 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         # The images are now already in the right size
         
         input_imgs = input_imgs[:,0:9,:,:] #extract the first 3 images
-        print "Action size {}".format(action_probabilities.size())
-        action_probabilities = action_probabilities[:,0:3] #extract steers first 3 out of 6 
-        #print("input_imgs shape: {}".format(input_imgs.shape))
-        #print("action_probabilities shape: {}".format(action_probabilities.shape))
-
-        #print("input_imgs shape: {}".format(input_imgs.shape))
-        #print("action_probabilities shape: {}".format(action_probabilities.shape))
         
+        action_probabilities = action_probabilities[:,0:3] #extract steers first 3 out of 6 
+                
 # Code to see the images        
 #         for j in range(input_imgs.size()[0]):
 #             for img in input_imgs.data.numpy():

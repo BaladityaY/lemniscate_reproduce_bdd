@@ -135,6 +135,12 @@ class Dataset(data.Dataset):
         
     def __len__(self):
         return len(self.run_files)
+    
+    def isnan(self,x):
+        '''
+        numpy-free way for torch compatible is nan check
+        '''
+        return x != x
 
     def __getitem__(self, index):
         data_moment = self.run_files[index]
@@ -154,10 +160,9 @@ class Dataset(data.Dataset):
         # through a gyroscope which needs movement to tell the direction. We retrieve the change in course which
         # will be 0 when there is no movement so we can catch NANs that way and replace them with zeros
         for i, value in enumerate(vel_course_pairs[:,1]):
-            if np.isnan(value):
+            if self.isnan(value):
                 vel_course_pairs[i][1] = 0.
-        print camera_data.size()
-        print vel_course_pairs.size()
+        
         return camera_data, vel_course_pairs, index
     
     @property
