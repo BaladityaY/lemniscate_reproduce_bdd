@@ -21,34 +21,57 @@ def get_device(device_id = 0):
         device_name = "cpu"
         return device
 
+
+memory_data_buffer = {}
+
+def load_to_mem(hdf_reference):
+    '''
+    Loads the content of the hdf_reference dataset into memory, using the dataset reference as a key.
+    This is only done if that reference does not yet exist in the buffer
+    '''
+    if not memory_data_buffer.has_key(hdf_reference): 
+        memory_data_buffer.update({hdf_reference:hdf_reference[:]})
+    # Return a pointer to the data in the dict
+    return memory_data_buffer.get(hdf_reference)
+
 class Data_Moment():
     
-    def __init__(self, images, speeds, start_index, n_frames, frame_gap, filename):
+    def __init__(self, images, speeds, start_index, n_frames, frame_gap, filename, preload_to_mem = False):
         '''
         There can be no calculation with content of the hdf5 file or a selection of ranges here
         because that will slow down loading and put a lot of data in memory
         '''
-        self.images = images
-        self.speeds = speeds
+        self.preload_to_mem = preload_to_mem
+        self.images = load_to_mem(images) if preload_to_mem else images
+        self.speeds = load_to_mem(speeds) if preload_to_mem else speeds
         
         self.filename = filename
         
         self.start_index = start_index
         self.stop_index = self.start_index + (n_frames*frame_gap) 
         self.frame_gap = frame_gap
-        
         if self.stop_index >= len(images):
             self.invalid = True
         else:
             self.invalid = False
-        
+            
         
     def convert_images(self, encoded_images):
         return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]      
     
-    def data_point(self):     
+    def data_point(self):
         
         indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
+        #print type(self.speeds)
+        
+#         if self.preload_to_mem:
+#             images = self.images[indices]        
+#             steer = self.steer_throttle[indices][:,0]
+#             throttle = self.steer_throttle[indices][:,1]
+#         else:
+#             images = self.images[:][indices]
+#             steer = self.steer_throttle[:][indices][:,0]
+#             throttle = self.steer_throttle[:][indices][:,1]
         
         # Speeds are one list, twice the size of images, because they are flattened out pairs of values.
         # They have to be reshaped to be pairs. It would be possible to select first the range on where
@@ -63,7 +86,8 @@ class Data_Moment():
         course_list = np.diff(course_list)
         
         velocities_courses = np.array(list(zip(velocities,course_list)))
-        
+        print "velocities {}".format(velocities)
+        print "courses {}".format(course_list)
         # Images have to be re-formatted into a numpy array because the special indexing does
         # not work on hdf5 files
         images = self.images[:][indices]
@@ -92,7 +116,7 @@ class Dataset(data.Dataset):
                             
         return sorted(file_list,key=self.sort_folder_ft)
     
-    def __init__(self, data_folder_dir, n_frames=6, frame_gap=4):
+    def __init__(self, data_folder_dir, n_frames=6, frame_gap=4, preload_to_mem = True):
         
         self.run_files = []
         self.n_frames = n_frames
@@ -113,7 +137,7 @@ class Dataset(data.Dataset):
                 
                 start_index = i
                 
-                moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename)
+                moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, preload_to_mem)
                 
                 if moment.invalid:
                     # At the end of a sequence no full scene can be compiled
@@ -148,7 +172,8 @@ class Dataset(data.Dataset):
             if np.isnan(value):
                 vel_course_pairs[i][1] = 0.
          
-        
+        print vel_course_pairs
+        exit()
         return camera_data, vel_course_pairs, index
     
     @property
@@ -157,7 +182,7 @@ class Dataset(data.Dataset):
 
 if __name__ == '__main__':
     
-    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",n_frames=6,frame_gap=4)
+    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",n_frames=6,frame_gap=4,preload_to_mem=False)
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
