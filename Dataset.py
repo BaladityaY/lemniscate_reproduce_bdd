@@ -35,7 +35,7 @@ def load_to_mem(hdf_reference):
     Loads the content of the hdf_reference dataset into memory, using the dataset reference as a key.
     This is only done if that reference does not yet exist in the buffer
     '''
-    if not memory_data_buffer.has_key(hdf_reference): 
+    if not hdf_reference in memory_data_buffer: 
         memory_data_buffer.update({hdf_reference:hdf_reference[:]})
     # Return a pointer to the data in the dict
     return memory_data_buffer.get(hdf_reference)
@@ -147,7 +147,7 @@ class Dataset(data.Dataset):
                 if preload_to_mem and get_free_mem() > keep_memory_free:
                     moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, preload_to_mem)
                 else:
-                    print "Loading to mem stopped"
+                    print("Loading to mem stopped")
                     # If preloading is no longer possible or not desired, save only the hdf5 reference
                     #print("Save reference to disk only")
                     moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, False)
@@ -200,7 +200,7 @@ class Dataset(data.Dataset):
 
 if __name__ == '__main__':
     
-    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",n_frames=6,frame_gap=4,preload_to_mem=False)
+    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set",n_frames=6,frame_gap=4,preload_to_mem=True)
     
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
