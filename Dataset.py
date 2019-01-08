@@ -90,6 +90,8 @@ class Data_Moment():
         course_list = np.array(BDD_Helper.to_course_list(speeds),dtype=np.float32)
         course_list = np.diff(course_list)
         
+        course_list = np.clip(course_list, -1.0,1.0) # Clip results for the network
+        
         velocities_courses = np.array(list(zip(velocities,course_list)))
         #print "velocities {}".format(velocities)
         #print "courses {}".format(course_list)
