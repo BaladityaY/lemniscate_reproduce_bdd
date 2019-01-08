@@ -262,10 +262,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         # Change the image size so it fits to the network
         #input_imgs = resize2d(input_imgs, (224,224))
         # The images are now already in the right size
-        print input_imgs.size()
-        print action_probabilities.size()
         input_imgs = input_imgs[:,0:9,:,:] #extract the first 3 images
-        
         action_probabilities = action_probabilities[:,0:3] #extract steers first 3 out of 6 
                 
 # Code to see the images        

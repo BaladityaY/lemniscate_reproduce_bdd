@@ -22,6 +22,12 @@ def get_device(device_id = 0):
         return device
 
 
+def get_free_mem():
+    meminfo = dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
+    mem_available = float(meminfo['MemAvailable'])
+    mem_total = float(meminfo['MemTotal'])
+    return (mem_available/mem_total)*100.
+
 memory_data_buffer = {}
 
 def load_to_mem(hdf_reference):
@@ -41,11 +47,11 @@ class Data_Moment():
         There can be no calculation with content of the hdf5 file or a selection of ranges here
         because that will slow down loading and put a lot of data in memory
         '''
-
+        
         self.preload_to_mem = preload_to_mem
         self.images = load_to_mem(images) if preload_to_mem else images
         self.speeds = load_to_mem(speeds) if preload_to_mem else speeds
-
+        
         # Because the change of course is calculated, we need n+1 datapoint to calculate
         # n course changes. This is done by increasing the length of a data moment and
         # then throwing the first frame away
@@ -85,8 +91,8 @@ class Data_Moment():
         course_list = np.diff(course_list)
         
         velocities_courses = np.array(list(zip(velocities,course_list)))
-        print "velocities {}".format(velocities)
-        print "courses {}".format(course_list)
+        #print "velocities {}".format(velocities)
+        #print "courses {}".format(course_list)
         # Images have to be re-formatted into a numpy array because the special indexing does
         # not work on hdf5 files
         images = self.images[:][img_indices]
@@ -115,7 +121,7 @@ class Dataset(data.Dataset):
                             
         return sorted(file_list,key=self.sort_folder_ft)
     
-    def __init__(self, data_folder_dir, n_frames=6, frame_gap=4, preload_to_mem = True):
+    def __init__(self, data_folder_dir, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=10):
         
         self.run_files = []
         self.n_frames = n_frames
@@ -138,7 +144,14 @@ class Dataset(data.Dataset):
                 
                 start_index = i
                 
-                moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, preload_to_mem)
+                if preload_to_mem and get_free_mem() > keep_memory_free:
+                    moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, preload_to_mem)
+                else:
+                    print "Loading to mem stopped"
+                    # If preloading is no longer possible or not desired, save only the hdf5 reference
+                    #print("Save reference to disk only")
+                    moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, False)
+                
                 
                 if moment.invalid:
                     # At the end of a sequence no full scene can be compiled
@@ -178,10 +191,6 @@ class Dataset(data.Dataset):
         for i, value in enumerate(vel_course_pairs[:,1]):
             if self.isnan(value):
                 vel_course_pairs[i][1] = 0.
-
-         
-        print vel_course_pairs
-        exit()
 
         return camera_data, vel_course_pairs, index
     
