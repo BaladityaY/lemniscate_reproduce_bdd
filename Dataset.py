@@ -123,7 +123,7 @@ class Dataset(data.Dataset):
                             
         return sorted(file_list,key=self.sort_folder_ft)
     
-    def __init__(self, data_folder_dir, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=10):
+    def __init__(self, data_folder_dir, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=10, sliding_window=False):
         
         self.run_files = []
         self.n_frames = n_frames
@@ -142,7 +142,9 @@ class Dataset(data.Dataset):
             # numpy arrays which is too costly in terms of speed and memory
             speeds = database_file['image']['speeds']
             
-            for i in range(len(images)):
+            step = 1 if sliding_window else n_frames
+            
+            for i in range(0,len(images),step):
                 
                 start_index = i
                 
@@ -207,10 +209,10 @@ if __name__ == '__main__':
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
     for i, (images, vel_course, index) in enumerate(train_loader):
-        
+        #print len(train_loader.dataset)
         img = images[0][6:9].data.cpu().numpy()
         img = img.transpose((1,2,0))+0.5
         print(vel_course)
         cv2.imshow("Test", img)
-        cv2.waitKey(3)
+        cv2.waitKey(30)
 
