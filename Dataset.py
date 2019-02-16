@@ -128,9 +128,7 @@ class Dataset(data.Dataset):
         self.run_files = []
         self.n_frames = n_frames
 
-        # We need to ensure one fixed not randomized order of images because the approach has to index
-        # the images always in the same way and os.walk does not ensure one fixed order
-        for filename in self.get_sorted_filelist(data_folder_dir):
+        training_h5_file = h5py.File(os.path.join(data_folder_dir,'training.h5'),'r')
 
             print("Processing {} ".format(filename))
            
