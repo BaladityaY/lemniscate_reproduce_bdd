@@ -151,7 +151,8 @@ class Dataset(data.Dataset):
                 if preload_to_mem and get_free_mem() > keep_memory_free:
                     moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, preload_to_mem)
                 else:
-                    print("Loading to mem stopped")
+                    if preload_to_mem:
+                        print("Loading to mem stopped")
                     # If preloading is no longer possible or not desired, save only the hdf5 reference
                     #print("Save reference to disk only")
                     moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, False)
