@@ -43,15 +43,14 @@ def load_to_mem(hdf_reference):
 
 class Data_Moment():
     
-    def __init__(self, images, speeds, start_index, n_frames, frame_gap, filename, preload_to_mem = False):
+    def __init__(self, db_object, start_index, n_frames, frame_gap, filename):
         '''
         There can be no calculation with content of the hdf5 file or a selection of ranges here
         because that will slow down loading and put a lot of data in memory
-        '''
+        '''        
         
-        self.preload_to_mem = preload_to_mem
-        self.images = load_to_mem(images) if preload_to_mem else images
-        self.speeds = load_to_mem(speeds) if preload_to_mem else speeds
+        self.images = db_object['image']['encoded']
+        self.speeds = db_object['speeds']['encoded']
         
         # Because the change of course is calculated, we need n+1 datapoint to calculate
         # n course changes. This is done by increasing the length of a data moment and
@@ -79,7 +78,6 @@ class Data_Moment():
         
         speed_indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
 
-        
         # Speeds are one list, twice the size of images, because they are flattened out pairs of values.
         # They have to be reshaped to be pairs. It would be possible to select first the range on where
         # to do the reshape operation and then do it though it is assumed the operation takes about the
@@ -129,45 +127,32 @@ class Dataset(data.Dataset):
         self.run_files = []
         self.n_frames = n_frames
 
-        db = DB_manager()
+        db = DB_manager(preload_to_mem, keep_memory_free)
         
-        
-        # Loading the hdf5 file where all the training data is grouped as links
-        training_h5_file = h5py.File(os.path.join(data_folder_dir,'training.h5'),'r')
+        # We need to ensure one fixed not randomized order of images because the approach has to index
+        # the images always in the same way and os.walk does not ensure one fixed order
+        for filename in self.get_sorted_filelist(data_folder_dir):
 
-        for link_name in training_h5_file.keys():
+            print("Processing {} ".format(filename))
+           
+            db_object = db.add_file(filename)
             
-            print "Parsing {}".format(link_name)
-            
-            images = training_h5_file[link_name]['encoded']
-            # Note that speeds is twice the length of images because there are two values for each image.
-            # However, if that is reformatted here, then this won't save hdf5 dataset references but instead
-            # numpy arrays which is too costly in terms of speed and memory
-            speeds = training_h5_file[link_name]['speeds']
-            
+            image_length = len(db_object['image']['encoded'])
+
             step = 1 if sliding_window else n_frames
             
-            for i in range(0,len(images),step):
+            for i in range(0,image_length,step):
                 
                 start_index = i
                 
-                if preload_to_mem and get_free_mem() > keep_memory_free:
-                    moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, link_name, preload_to_mem)
-                else:
-                    if preload_to_mem:
-                        print("Loading to mem stopped")
-                    # If preloading is no longer possible or not desired, save only the hdf5 reference
-                    #print("Save reference to disk only")
-                    moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, link_name, False)
-                
+                moment = Data_Moment(db_object, start_index, n_frames, frame_gap, filename)
                 
                 if moment.invalid:
                     # At the end of a sequence no full scene can be compiled
                     print("Moment too short")
                     break                
                 
-                self.run_files.append(moment)
-                
+                self.run_files.append(moment)                
 
         
     def __len__(self):
