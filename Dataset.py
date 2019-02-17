@@ -128,17 +128,18 @@ class Dataset(data.Dataset):
         self.run_files = []
         self.n_frames = n_frames
 
+        # Loading the hdf5 file where all the training data is grouped as links
         training_h5_file = h5py.File(os.path.join(data_folder_dir,'training.h5'),'r')
 
-            print("Processing {} ".format(filename))
-           
-            database_file = h5py.File(filename, 'r')                        
+        for link_name in training_h5_file.keys():
             
-            images = database_file['image']['encoded']
+            print "Parsing {}".format(link_name)
+           
+            images = training_h5_file[link_name]['image']['encoded']
             # Note that speeds is twice the length of images because there are two values for each image.
             # However, if that is reformatted here, then this won't save hdf5 dataset references but instead
             # numpy arrays which is too costly in terms of speed and memory
-            speeds = database_file['image']['speeds']
+            speeds = training_h5_file[link_name]['image']['speeds']
             
             step = 1 if sliding_window else n_frames
             
@@ -147,13 +148,13 @@ class Dataset(data.Dataset):
                 start_index = i
                 
                 if preload_to_mem and get_free_mem() > keep_memory_free:
-                    moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, preload_to_mem)
+                    moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, link_name, preload_to_mem)
                 else:
                     if preload_to_mem:
                         print("Loading to mem stopped")
                     # If preloading is no longer possible or not desired, save only the hdf5 reference
                     #print("Save reference to disk only")
-                    moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, filename, False)
+                    moment = Data_Moment(images, speeds, start_index, n_frames, frame_gap, link_name, False)
                 
                 
                 if moment.invalid:
