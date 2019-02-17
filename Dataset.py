@@ -9,6 +9,7 @@ import os
 from bdd_tools import BDD_Helper
 from docutils.nodes import image
 import random
+from hdf5_wrapper import DB_manager
 
 def get_device(device_id = 0):
     if torch.cuda.is_available():
@@ -128,18 +129,21 @@ class Dataset(data.Dataset):
         self.run_files = []
         self.n_frames = n_frames
 
+        db = DB_manager()
+        
+        
         # Loading the hdf5 file where all the training data is grouped as links
         training_h5_file = h5py.File(os.path.join(data_folder_dir,'training.h5'),'r')
 
         for link_name in training_h5_file.keys():
             
             print "Parsing {}".format(link_name)
-           
-            images = training_h5_file[link_name]['image']['encoded']
+            
+            images = training_h5_file[link_name]['encoded']
             # Note that speeds is twice the length of images because there are two values for each image.
             # However, if that is reformatted here, then this won't save hdf5 dataset references but instead
             # numpy arrays which is too costly in terms of speed and memory
-            speeds = training_h5_file[link_name]['image']['speeds']
+            speeds = training_h5_file[link_name]['speeds']
             
             step = 1 if sliding_window else n_frames
             
