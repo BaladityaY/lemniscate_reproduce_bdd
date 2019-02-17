@@ -23,24 +23,6 @@ def get_device(device_id = 0):
         return device
 
 
-def get_free_mem():
-    meminfo = dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
-    mem_available = float(meminfo['MemAvailable'])
-    mem_total = float(meminfo['MemTotal'])
-    return (mem_available/mem_total)*100.
-
-memory_data_buffer = {}
-
-def load_to_mem(hdf_reference):
-    '''
-    Loads the content of the hdf_reference dataset into memory, using the dataset reference as a key.
-    This is only done if that reference does not yet exist in the buffer
-    '''
-    if not hdf_reference in memory_data_buffer: 
-        memory_data_buffer.update({hdf_reference:hdf_reference[:]})
-    # Return a pointer to the data in the dict
-    return memory_data_buffer.get(hdf_reference)
-
 class Data_Moment():
     
     def __init__(self, db_object, start_index, n_frames, frame_gap, filename):
