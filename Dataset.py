@@ -66,7 +66,7 @@ class Data_Moment():
             self.invalid = True
         else:
             self.invalid = False
-            
+        
         
     def convert_images(self, encoded_images):
         return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]      
