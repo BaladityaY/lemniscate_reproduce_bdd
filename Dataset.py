@@ -117,7 +117,7 @@ class Dataset(data.Dataset):
 
             print("Processing {} ".format(filename))
            
-            db_object = db.add_file(filename)
+            db_object = db.add_db_object(filename)
             
             image_length = len(db_object['image']['encoded'])
 
