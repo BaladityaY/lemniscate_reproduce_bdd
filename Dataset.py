@@ -117,9 +117,9 @@ class Dataset(data.Dataset):
 
             print("Processing {} ".format(filename))
            
-            db_object = db.add_db_object(filename)
+            db_item = db.add_file(filename)
             
-            image_length = len(db_object['image']['encoded'])
+            image_length = len(db_item['image']['encoded'])
 
             step = 1 if sliding_window else n_frames
             
@@ -127,7 +127,7 @@ class Dataset(data.Dataset):
                 
                 start_index = i
                 
-                moment = Data_Moment(db_object, start_index, n_frames, frame_gap, filename)
+                moment = Data_Moment(db_item, start_index, n_frames, frame_gap, filename)
                 
                 if moment.invalid:
                     # At the end of a sequence no full scene can be compiled
