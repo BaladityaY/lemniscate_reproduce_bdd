@@ -175,8 +175,8 @@ class Dataset(data.Dataset):
 
 if __name__ == '__main__':
     
-    train_dataset = Dataset("/home/sascha/for_bdd_training/full_dataset",n_frames=6,frame_gap=4,preload_to_mem=False)    
-    
+    train_dataset = Dataset("/home/sascha/for_bdd_training/full_dataset/train",n_frames=6,frame_gap=4,preload_to_mem=False)    
+    print "Dataset has {} entries".format(len(train_dataset))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
     for i, (images, vel_course, index) in enumerate(train_loader):
