@@ -11,7 +11,7 @@ storage_type = Enum('storage_type', 'file_handle string')
 class DB_item(object):
    
     def __init__(self, filename, db_type, close_file_method, stack_file_method):
-        self.type = db_type
+        self.db_type = db_type
         self.filename = filename
         self.count_file_method = close_file_method
         self.stack_file = stack_file_method
