@@ -10,11 +10,11 @@ storage_type = Enum('storage_type', 'file_handle string')
 
 class DB_item(object):
    
-    def __init__(self, filename, db_type, close_open_file, stack_open_file_method):
+    def __init__(self, filename, db_type, close_file_method, stack_file_method):
         self.type = db_type
         self.filename = filename
-        self.count_file_method = close_open_file
-        self.stack_file = stack_open_file_method
+        self.count_file_method = close_file_method
+        self.stack_file = stack_file_method
         
         if db_type == storage_type.file_handle:
             self.handle = h5py.File(filename, 'r')
@@ -64,7 +64,7 @@ class DB_manager(object):
         print "Add {}".format(filename)
         
         if len(self.open_files) < self.max_open_files:
-            db_item = DB_item(filename, storage_type.file_handle)
+            db_item = DB_item(filename, storage_type.file_handle,self.close_open_file,self.stack_open_file)
             self.stack_open_file(db_item)
         else:
             db_item = DB_item(filename, storage_type.string)
