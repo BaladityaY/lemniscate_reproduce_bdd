@@ -45,12 +45,10 @@ class DB_item(object):
     def close(self):
         self.handle.close()
         
-        
 
 class DB_manager(object):
     
-    def __init__(self, preload_to_mem, keep_memory_free, max_open_files=15000):
-        
+    def __init__(self, preload_to_mem, keep_memory_free, max_open_files=64):        
         
         self.preload_to_mem = preload_to_mem
         #self.keep_memory_free = keep_memory_free
