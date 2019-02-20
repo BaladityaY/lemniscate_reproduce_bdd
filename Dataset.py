@@ -32,7 +32,7 @@ class Data_Moment():
         '''        
         
         self.images = db_object['image']['encoded']
-        self.speeds = db_object['speeds']['encoded']
+        self.speeds = db_object['image']['speeds']
         
         # Because the change of course is calculated, we need n+1 datapoint to calculate
         # n course changes. This is done by increasing the length of a data moment and
@@ -44,7 +44,7 @@ class Data_Moment():
         self.start_index = start_index
         self.stop_index = self.start_index + (n_frames*frame_gap) 
         self.frame_gap = frame_gap
-        if self.stop_index >= len(images):
+        if self.stop_index >= len(self.images):
             self.invalid = True
         else:
             self.invalid = False
@@ -104,6 +104,9 @@ class Dataset(data.Dataset):
                             
         return sorted(file_list,key=self.sort_folder_ft)
     
+
+    
+    
     def __init__(self, data_folder_dir, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=10, sliding_window=False):
         
         self.run_files = []
@@ -113,9 +116,10 @@ class Dataset(data.Dataset):
         
         # We need to ensure one fixed not randomized order of images because the approach has to index
         # the images always in the same way and os.walk does not ensure one fixed order
-        for filename in self.get_sorted_filelist(data_folder_dir):
+        for j, filename in enumerate(self.get_sorted_filelist(data_folder_dir)):
 
-            print("Processing {} ".format(filename))
+            if j % 10 == 0:
+                print("Processing {} ".format(filename))
            
             db_item = db.add_file(filename)
             
@@ -131,11 +135,10 @@ class Dataset(data.Dataset):
                 
                 if moment.invalid:
                     # At the end of a sequence no full scene can be compiled
-                    print("Moment too short")
+                    # print("Moment too short")
                     break                
                 
-                self.run_files.append(moment)                
-
+                self.run_files.append(moment)   
         
     def __len__(self):
         return len(self.run_files)

@@ -13,7 +13,7 @@ class DB_item(object):
     def __init__(self, filename, db_type, close_file_method, stack_file_method):
         self.db_type = db_type
         self.filename = filename
-        self.count_file_method = close_file_method
+        self.close_file = close_file_method
         self.stack_file = stack_file_method
         
         if db_type == storage_type.file_handle:
@@ -22,6 +22,8 @@ class DB_item(object):
             self.handle = filename
         else:
             raise TypeError('The DB item has an unknown type. This is fatal')
+        
+       
             
     
     def __getitem__(self, index):
@@ -31,13 +33,17 @@ class DB_item(object):
         elif self.db_type == storage_type.string:
             # If we need to open another file we first close a file from the open list. 
             # That file should be the one, added in the most distant past
-            self.close_open_file()            
+            self.close_file()            
             new_open_file = h5py.File(self.filename, 'r')
             self.handle = new_open_file
+            self.db_type = storage_type.file_handle
             self.stack_file(new_open_file)
             return new_open_file[index]
         else:
             raise TypeError('The DB item has an unknown type. This is fatal')
+        
+    def close(self):
+        self.handle.close()
         
         
 
@@ -54,20 +60,20 @@ class DB_manager(object):
     def close_open_file(self):
         if len(self.open_files) >= self.max_open_files:
             self.open_files[0].close()
-            self.open_files[0].pop(0)
+            self.open_files.popleft()
             
     def stack_open_file(self, db_object):
         self.open_files.append(db_object)
 
 
     def add_file(self, filename):
-        print "Add {}".format(filename)
+        #print "Add {}".format(filename)
         
         if len(self.open_files) < self.max_open_files:
             db_item = DB_item(filename, storage_type.file_handle,self.close_open_file,self.stack_open_file)
             self.stack_open_file(db_item)
         else:
-            db_item = DB_item(filename, storage_type.string)
+            db_item = DB_item(filename, storage_type.string,self.close_open_file,self.stack_open_file)
         
         return db_item
     
