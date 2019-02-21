@@ -26,11 +26,6 @@ def bce(a1, a2):
     t1 = Variable(torch.from_numpy(a1).type(torch.FloatTensor))
     t2 = Variable(torch.from_numpy(a2).type(torch.FloatTensor))
 
-
-    print t1
-    print "---"
-    print t2
-
     criterion = nn.BCELoss(reduce=False)
     loss = criterion(t1, t2)
 
@@ -89,13 +84,13 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             
             #print('input_imgs shape: {}'.format(input_imgs.shape))
             #print('og_targets: {}'.format(og_targets))
-            print input_imgs.size()
+            #print input_imgs.size()
             input_imgs = input_imgs[:,0:9,:,:] #extract only img 1 through 3
             targets = targets[:,0:3] #extract steers first 3 targets
                 
             #input_imgs = resize2d(input_imgs, (224,224))
             # The new images are already in the right size
-            print input_imgs.size()
+            #print input_imgs.size()
             features = net(input_imgs, targets)
             net_time.update(time.time() - end)
             end = time.time()
