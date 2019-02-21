@@ -25,21 +25,19 @@ def get_device(device_id = 0):
 
 class Data_Moment():
     
-    def __init__(self, sequence, start_index, n_frames, frame_gap, filename):
+    def __init__(self, sequence, start_index, n_frames, frame_gap):
         '''
         There can be no calculation with content of the hdf5 file or a selection of ranges here
         because that will slow down loading and put a lot of data in memory
         '''        
         
         self.images = sequence.images
-        self.speeds = sequence.speeeds
+        self.speeds = sequence.speeds
         
         # Because the change of course is calculated, we need n+1 datapoint to calculate
         # n course changes. This is done by increasing the length of a data moment and
         # then throwing the first frame away
         n_frames += 1
-        
-        self.filename = filename
         
         self.start_index = start_index
         self.stop_index = self.start_index + (n_frames*frame_gap) 
@@ -85,24 +83,6 @@ class Data_Moment():
     
 
 class Dataset(data.Dataset):
-    
-    def sort_folder_ft(self, s):
-        '''
-        Returns the last two entries, file name and last folder name, as key to sort
-        '''
-        return s.split('/')[-2]+'/'+s.split('/')[-1]
-        
-    def get_sorted_filelist(self,data_folder_dir):
-        
-        file_list = []
-        for path, subdirs, files in os.walk(data_folder_dir,followlinks=True):
-            for file_name in files:
-                if file_name.endswith('h5'):
-                    filename = os.path.join(path,file_name)
-                    
-                    file_list.append(filename)
-                            
-        return sorted(file_list,key=self.sort_folder_ft)
     
     
     def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=10, sliding_window=False):
@@ -171,9 +151,10 @@ class Dataset(data.Dataset):
 
 if __name__ == '__main__':
     
+
     #train_dataset = Dataset("/home/sascha/for_bdd_training/full_dataset/train",n_frames=6,frame_gap=4,preload_to_mem=False)
     #train_dataset = Dataset("/home/sascha/for_bdd_training/smaller_dataset/train",n_frames=6,frame_gap=4,preload_to_mem=False)
-    train_dataset = Dataset("/home/sascha/for_bdd_training/full_dataset/train/full_training_set.hdf5",n_frames=6,frame_gap=4,preload_to_mem=False)    
+    train_dataset = Dataset("/data/dataset/full_train_set.hdf5",n_frames=6,frame_gap=4,preload_to_mem=False)    
     print "Dataset has {} entries".format(len(train_dataset))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     
@@ -184,4 +165,5 @@ if __name__ == '__main__':
         print(vel_course)
         cv2.imshow("Test", img)
         cv2.waitKey(30)
+
 
