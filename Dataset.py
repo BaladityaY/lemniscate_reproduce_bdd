@@ -35,7 +35,7 @@ def load_to_mem(hdf_reference):
     Loads the content of the hdf_reference dataset into memory, using the dataset reference as a key.
     This is only done if that reference does not yet exist in the buffer
     '''
-    print "Load to mem"
+    
     if not hdf_reference in memory_data_buffer: 
         memory_data_buffer.update({hdf_reference:hdf_reference[:]})
     # Return a pointer to the data in the dict
