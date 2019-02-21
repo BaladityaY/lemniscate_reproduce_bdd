@@ -37,8 +37,10 @@ model_names = sorted(name for name in models.__dict__
     and callable(models.__dict__[name]))
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('data', metavar='DIR',
-                     help='path to dataset')
+parser.add_argument('--train-data', metavar='DIR',
+                     help='path to the training file')
+parser.add_argument('--val-data', metavar='DIR',
+                     help='path to the validation file')
 parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
@@ -139,13 +141,13 @@ def main():
 
 
     # Data loading code
-    traindir = os.path.join(args.data, 'train')
-    valdir = os.path.join(args.data, 'val')
+    training_file = args.train_data
+    validation_file = args.val_data
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    train_dataset = Dataset(traindir, n_frames)
-    val_dataset = Dataset(valdir, n_frames)
+    train_dataset = Dataset(training_file, n_frames)
+    val_dataset = Dataset(validation_file, n_frames)
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=True, #(train_sampler is None), 
