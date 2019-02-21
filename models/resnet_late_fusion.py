@@ -144,13 +144,13 @@ class ResNet(nn.Module):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes+6, planes * block.expansion, #steering concat
+                nn.Conv2d(self.inplanes+18, planes * block.expansion, #steering concat
                           kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
         layers = []
-        layers.append(block(self.inplanes+6, planes, stride, downsample)) #steering concat
+        layers.append(block(self.inplanes+18, planes, stride, downsample)) #steering concat
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes))
@@ -217,30 +217,30 @@ class ResNet(nn.Module):
 
         return all_flow_fields
 
-    def forward(self, imgs, action_probabilities):
+    def forward(self, x, action_probabilities):
         
-        imgs = self.conv1(imgs)
+        x = self.conv1(x)
         
-        imgs = self.bn1(imgs)
-        imgs = self.relu(imgs)
-        imgs = self.maxpool(imgs)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
 
-        imgs = self.layer1(imgs)
-        imgs = self.layer2(imgs)
+        x = self.layer1(x)
+        x = self.layer2(x)
         
         action_probabilities = action_probabilities.view(action_probabilities.size()[0],-1).expand(28,28,-1,-1).permute(2,3,0,1)
         
-        imgs = torch.cat((imgs, action_probabilities), dim=1)
+        x = torch.cat((x, action_probabilities), dim=1)
         
-        imgs = self.layer3(imgs)
-        imgs = self.layer4(imgs)
+        x = self.layer3(x)
+        x = self.layer4(x)
         
-        imgs = self.avgpool(imgs)
-        imgs = imgs.view(imgs.size(0), -1)
-        imgs = self.fc(imgs)
-        imgs = self.l2norm(imgs)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        x = self.l2norm(x)
 
-        return imgs
+        return x
 
 
 def resnet18(pretrained=False, **kwargs):
