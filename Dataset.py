@@ -35,6 +35,7 @@ def load_to_mem(hdf_reference):
     Loads the content of the hdf_reference dataset into memory, using the dataset reference as a key.
     This is only done if that reference does not yet exist in the buffer
     '''
+    print "Load to mem"
     if not hdf_reference in memory_data_buffer: 
         memory_data_buffer.update({hdf_reference:hdf_reference[:]})
     # Return a pointer to the data in the dict
@@ -92,7 +93,7 @@ class Data_Moment():
 class Dataset(data.Dataset):
     
     
-    def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem = False, keep_memory_free=10, sliding_window=False):
+    def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=10, sliding_window=False):
         
         self.run_files = []
         self.n_frames = n_frames
