@@ -64,22 +64,12 @@ class Data_Moment():
         # same time so we first reshape because then indexing becomes easier, as it is equal to image indexing.
         speeds = np.reshape(self.speeds, [-1, 2])
         speeds = speeds[speed_indices]
+        actions = BDD_Helper.turn_future_smooth(speeds, 5, 0)
         
-        velocities = np.array(np.linalg.norm(speeds,axis=1),dtype=np.float32)
-        course_list = np.array(BDD_Helper.to_course_list(speeds),dtype=np.float32)
-        course_list = np.diff(course_list)
-        
-        course_list = np.clip(course_list, -1.0,1.0) # Clip results for the network
-        
-        velocities_courses = np.array(list(zip(velocities,course_list)))
-        #print "velocities {}".format(velocities)
-        #print "courses {}".format(course_list)
-        # Images have to be re-formatted into a numpy array because the special indexing does
-        # not work on hdf5 files
         images = self.images[:][img_indices]
         
         return {'imgs':self.convert_images(images),  
-                'vel_course_pairs':velocities_courses}
+                'actions':actions}
     
 
 class Dataset(data.Dataset):
@@ -127,43 +117,37 @@ class Dataset(data.Dataset):
         camera_data = torch.FloatTensor().to(get_device())
         
         for frame in range(self.n_frames): 
+            
             img = torch.FloatTensor(data_moment.data_point()['imgs'][frame]).to(get_device())
             camera_data = torch.cat((camera_data, img), 2)
              
         camera_data = camera_data.float() / 255. - 0.5
         camera_data = torch.transpose(camera_data, 0, 2)
         camera_data = torch.transpose(camera_data, 1, 2)
-        
-        vel_course_pairs = torch.from_numpy(data_moment.data_point()['vel_course_pairs']).float().to(get_device()) 
-        
-        # If there is no movement, course information become NAN. This is most likely because they calculate it 
-        # through a gyroscope which needs movement to tell the direction. We retrieve the change in course which
-        # will be 0 when there is no movement so we can catch NANs that way and replace them with zeros
-        for i, value in enumerate(vel_course_pairs[:,1]):
-            if self.isnan(value):
-                vel_course_pairs[i][1] = 0.
 
-        return camera_data, vel_course_pairs, index
+        all_actions = torch.from_numpy(data_moment.data_point()['actions'][:]).float().to(get_device())
+        
+        return camera_data, all_actions, index
     
     @property
     def train_labels(self):
         return np.array(range(len(self.run_files)))
 
 if __name__ == '__main__':
-    
-
-    #train_dataset = Dataset("/home/sascha/for_bdd_training/full_dataset/train",n_frames=6,frame_gap=4,preload_to_mem=False)
-    #train_dataset = Dataset("/home/sascha/for_bdd_training/smaller_dataset/train",n_frames=6,frame_gap=4,preload_to_mem=False)
-    train_dataset = Dataset("/data/dataset/full_train_set.hdf5",n_frames=6,frame_gap=4,preload_to_mem=False)    
-    print "Dataset has {} entries".format(len(train_dataset))
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
-    
-    for i, (images, vel_course, index) in enumerate(train_loader):
-        #print len(train_loader.dataset)
-        img = images[0][6:9].data.cpu().numpy()
-        img = img.transpose((1,2,0))+0.5
-        print(vel_course)
-        cv2.imshow("Test", img)
-        cv2.waitKey(30)
+    pass
+# 
+#     #train_dataset = Dataset("/home/sascha/for_bdd_training/full_dataset/train",n_frames=6,frame_gap=4,preload_to_mem=False)
+#     #train_dataset = Dataset("/home/sascha/for_bdd_training/smaller_dataset/train",n_frames=6,frame_gap=4,preload_to_mem=False)
+#     train_dataset = Dataset("/data/dataset/full_train_set.hdf5",n_frames=6,frame_gap=4,preload_to_mem=False)    
+#     print "Dataset has {} entries".format(len(train_dataset))
+#     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
+#     
+#     for i, (images, vel_course, index) in enumerate(train_loader):
+#         #print len(train_loader.dataset)
+#         img = images[0][6:9].data.cpu().numpy()
+#         img = img.transpose((1,2,0))+0.5
+#         print(vel_course)
+#         cv2.imshow("Test", img)
+#         cv2.waitKey(30)
 
 
