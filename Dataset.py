@@ -25,14 +25,14 @@ def get_device(device_id = 0):
 
 class Data_Moment():
     
-    def __init__(self, db_object, start_index, n_frames, frame_gap, filename):
+    def __init__(self, sequence, start_index, n_frames, frame_gap, filename):
         '''
         There can be no calculation with content of the hdf5 file or a selection of ranges here
         because that will slow down loading and put a lot of data in memory
         '''        
         
-        self.images = db_object['image']['encoded']
-        self.speeds = db_object['image']['speeds']
+        self.images = sequence.images
+        self.speeds = sequence.speeeds
         
         # Because the change of course is calculated, we need n+1 datapoint to calculate
         # n course changes. This is done by increasing the length of a data moment and
@@ -104,26 +104,19 @@ class Dataset(data.Dataset):
                             
         return sorted(file_list,key=self.sort_folder_ft)
     
-
     
-    
-    def __init__(self, data_folder_dir, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=10, sliding_window=False):
+    def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=10, sliding_window=False):
         
         self.run_files = []
         self.n_frames = n_frames
 
-        db = DB_manager(preload_to_mem, keep_memory_free)
+        db = DB_manager(preload_to_mem, keep_memory_free, data_file_path)
         
         # We need to ensure one fixed not randomized order of images because the approach has to index
         # the images always in the same way and os.walk does not ensure one fixed order
-        for j, filename in enumerate(self.get_sorted_filelist(data_folder_dir)):
-
-            if j % 10 == 0:
-                print("Processing {} ".format(filename))
-           
-            db_item = db.add_file(filename)
+        for sequence in db.get_sequence_list():
             
-            image_length = len(db_item['image']['encoded'])
+            image_length = len(sequence.images)
 
             step = 1 if sliding_window else n_frames
             
@@ -131,7 +124,7 @@ class Dataset(data.Dataset):
                 
                 start_index = i
                 
-                moment = Data_Moment(db_item, start_index, n_frames, frame_gap, filename)
+                moment = Data_Moment(sequence, start_index, n_frames, frame_gap)
                 
                 if moment.invalid:
                     # At the end of a sequence no full scene can be compiled
@@ -180,7 +173,7 @@ if __name__ == '__main__':
     
     #train_dataset = Dataset("/home/sascha/for_bdd_training/full_dataset/train",n_frames=6,frame_gap=4,preload_to_mem=False)
     #train_dataset = Dataset("/home/sascha/for_bdd_training/smaller_dataset/train",n_frames=6,frame_gap=4,preload_to_mem=False)
-    train_dataset = Dataset("/home/sascha/for_bdd_training/tiny_test_set/train",n_frames=6,frame_gap=4,preload_to_mem=False)    
+    train_dataset = Dataset("/home/sascha/for_bdd_training/full_dataset/train/full_training_set.hdf5",n_frames=6,frame_gap=4,preload_to_mem=False)    
     print "Dataset has {} entries".format(len(train_dataset))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=False, num_workers=0)
     

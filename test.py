@@ -26,6 +26,11 @@ def bce(a1, a2):
     t1 = Variable(torch.from_numpy(a1).type(torch.FloatTensor))
     t2 = Variable(torch.from_numpy(a2).type(torch.FloatTensor))
 
+
+    print t1
+    print "---"
+    print t2
+
     criterion = nn.BCELoss(reduce=False)
     loss = criterion(t1, t2)
 
@@ -127,7 +132,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                 image_steering_label_past = 0
                 image_steering_label_future = 0
 
-                
+                print batch_i_steer
                 for top5_id in range(topk):
                     ret_ind = int(retrieval[batch_id, top5_id])
                     img_steer_lab = trainloader.dataset[ret_ind][1].cpu().numpy() # 6x6
