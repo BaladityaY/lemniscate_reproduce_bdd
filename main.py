@@ -98,17 +98,7 @@ def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,requires_grad=False), size)).data
 
 def add_epoch_score(filename, epoch, score):
-    if os.path.isfile(filename)
-        f = open(filename, 'r')
-        lines = f.readlines()
-        f.close()
-    else:
-    # Why has anybody included the following line????        
-    #open(filename, 'w').close()
-    
-    f = open(filename, 'w')
-    for line in lines:
-        f.write(line)
+    f = open(filename, 'a')
     f.write('Epoch {}: {}\n'.format(epoch, score))
     f.close()
     
