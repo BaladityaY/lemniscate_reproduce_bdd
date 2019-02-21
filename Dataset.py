@@ -92,12 +92,12 @@ class Data_Moment():
 class Dataset(data.Dataset):
     
     
-    def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=10, sliding_window=False):
+    def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem = False, keep_memory_free=10, sliding_window=False):
         
         self.run_files = []
         self.n_frames = n_frames
 
-        db = DB_manager(preload_to_mem, keep_memory_free, data_file_path)
+        db = DB_manager(data_file_path)
         
         # We need to ensure one fixed not randomized order of images because the approach has to index
         # the images always in the same way and os.walk does not ensure one fixed order
@@ -110,8 +110,12 @@ class Dataset(data.Dataset):
             for i in range(0,image_length,step):
                 
                 start_index = i
-                
-                moment = Data_Moment(sequence, start_index, n_frames, frame_gap)
+                if preload_to_mem and get_free_mem() > keep_memory_free:
+                    moment = Data_Moment(sequence, start_index, n_frames, frame_gap, preload_to_mem)
+                else:
+                    if preload_to_mem:
+                        print("Loading to mem stopped")
+                    moment = Data_Moment(sequence, start_index, n_frames, frame_gap, False)
                 
                 if moment.invalid:
                     # At the end of a sequence no full scene can be compiled

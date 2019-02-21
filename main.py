@@ -190,7 +190,8 @@ def main():
 
         # train for one epoch
         train(train_loader, model, lemniscate, criterion, optimizer, epoch)
-
+        #print "Exited because this is a debug run"
+        #exit()
         # evaluate on validation set
         prec1, prec1_past, prec1_future = NN(epoch, model, lemniscate, train_loader, val_loader)
 
@@ -231,6 +232,8 @@ def main():
             'best_prec1_future': best_prec1_future,
             'optimizer' : optimizer.state_dict(),
         }, is_best_future, epoch, best_mod='_future')
+        
+        
     # evaluate KNN after last epoch
     kNN(0, model, lemniscate, train_loader, val_loader, 200, args.nce_t)
 
