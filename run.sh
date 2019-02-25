@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 ulimit -n 160000
 #python main.py -j 0 --gpu 0 --batch-size 32 /home/sascha/for_bdd_training/smaller_dataset
 #python main.py -j 0 --gpu 0 --batch-size 32 /home/sascha/for_bdd_training/full_dataset

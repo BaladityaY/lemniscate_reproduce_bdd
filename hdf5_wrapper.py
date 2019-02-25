@@ -14,11 +14,8 @@ class DB_item(object):
 
 class DB_manager(object):
     
-    def __init__(self, preload_to_mem, keep_memory_free, data_file_path):        
+    def __init__(self, data_file_path):        
         
-        # Most likely this is not needed anymore
-        self.preload_to_mem = preload_to_mem
-        self.keep_memory_free = keep_memory_free
         print "Loading {}".format(data_file_path)
         print "The file exists: {}".format(os.path.isfile(data_file_path)) 
         

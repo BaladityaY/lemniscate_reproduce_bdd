@@ -22,18 +22,36 @@ def get_device(device_id = 0):
         device_name = "cpu"
         return device
 
+def get_free_mem():
+    meminfo = dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
+    mem_available = float(meminfo['MemAvailable'])
+    mem_total = float(meminfo['MemTotal'])
+    return (mem_available/mem_total)*100.
+
+memory_data_buffer = {}
+
+def load_to_mem(hdf_reference):
+    '''
+    Loads the content of the hdf_reference dataset into memory, using the dataset reference as a key.
+    This is only done if that reference does not yet exist in the buffer
+    '''
+    
+    if not hdf_reference in memory_data_buffer: 
+        memory_data_buffer.update({hdf_reference:hdf_reference[:]})
+    # Return a pointer to the data in the dict
+    return memory_data_buffer.get(hdf_reference)
 
 class Data_Moment():
     
-    def __init__(self, sequence, start_index, n_frames, frame_gap):
+    def __init__(self, sequence, start_index, n_frames, frame_gap, preload_to_mem = False):
         '''
         There can be no calculation with content of the hdf5 file or a selection of ranges here
         because that will slow down loading and put a lot of data in memory
         '''        
         
-        self.images = sequence.images
-        self.speeds = sequence.speeds
-        
+        self.images = load_to_mem(sequence.images) if preload_to_mem else sequence.images
+        self.speeds = load_to_mem(sequence.speeds) if preload_to_mem else sequence.speeds
+                
         # Because the change of course is calculated, we need n+1 datapoint to calculate
         # n course changes. This is done by increasing the length of a data moment and
         # then throwing the first frame away
@@ -80,7 +98,7 @@ class Dataset(data.Dataset):
         self.run_files = []
         self.n_frames = n_frames
 
-        db = DB_manager(preload_to_mem, keep_memory_free, data_file_path)
+        db = DB_manager(data_file_path)
         
         # We need to ensure one fixed not randomized order of images because the approach has to index
         # the images always in the same way and os.walk does not ensure one fixed order
@@ -93,8 +111,12 @@ class Dataset(data.Dataset):
             for i in range(0,image_length,step):
                 
                 start_index = i
-                
-                moment = Data_Moment(sequence, start_index, n_frames, frame_gap)
+                if preload_to_mem and get_free_mem() > keep_memory_free:
+                    moment = Data_Moment(sequence, start_index, n_frames, frame_gap, preload_to_mem)
+                else:
+                    if preload_to_mem:
+                        print("Loading to mem stopped")
+                    moment = Data_Moment(sequence, start_index, n_frames, frame_gap, False)
                 
                 if moment.invalid:
                     # At the end of a sequence no full scene can be compiled
