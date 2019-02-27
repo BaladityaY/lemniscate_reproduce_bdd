@@ -1,9 +1,9 @@
 
-
+from __future__ import division
 import argparse
 import os
 import sys
-from __future__ import division
+
 import shutil
 import time
 
