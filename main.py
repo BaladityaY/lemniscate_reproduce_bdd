@@ -128,6 +128,7 @@ def main():
             model.to(get_device(args.gpu))
         else:
             model = torch.nn.DataParallel(model).to(get_device(args.gpu))
+            model.to(get_device(args.gpu))
     else:
         model.to(get_device(args.gpu))
         model = torch.nn.parallel.DistributedDataParallel(model)
@@ -184,6 +185,7 @@ def main():
         kNN(0, model, lemniscate, train_loader, val_loader, 200, args.nce_t)
         return
 
+    #criterion = criterion.to(get_device(args.gpu))
     
     for epoch in range(args.start_epoch, args.epochs):
 
@@ -264,6 +266,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
 
         indices = indices.to(get_device(args.gpu))
         input_imgs = input_imgs.to(get_device(args.gpu))
+        action_probabilities = action_probabilities.to(get_device(args.gpu)) 
         # Change the image size so it fits to the network
         #input_imgs = resize2d(input_imgs, (224,224))
         # The images are now already in the right size
