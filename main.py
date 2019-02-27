@@ -192,8 +192,8 @@ def main():
 
         # train for one epoch
         train(train_loader, model, lemniscate, criterion, optimizer, epoch)
-        print "Exited because this is a debug run"
-        exit()
+        #print "Exited because this is a debug run"
+        #exit()
         # evaluate on validation set
         prec1, prec1_past, prec1_future = NN(epoch, model, lemniscate, train_loader, val_loader)
 
