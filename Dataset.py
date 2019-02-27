@@ -107,7 +107,9 @@ class Dataset(data.Dataset):
             
             image_length = len(sequence.images)
 
-            step = 1 if sliding_window else n_frames
+            # If we are not going over the data in a sliding window fashion we jump depending on the amount 
+            # of frames and the gap size
+            step = 1 if sliding_window else n_frames*frame_gap
             
             for i in range(0,image_length,step):
                 
