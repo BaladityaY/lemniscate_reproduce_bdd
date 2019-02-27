@@ -100,9 +100,16 @@ class Dataset(data.Dataset):
 
         db = DB_manager(data_file_path)
         
+        debug = True
+        seq_limit = 1000
+        
         # We need to ensure one fixed not randomized order of images because the approach has to index
         # the images always in the same way and os.walk does not ensure one fixed order
-        for sequence in db.get_sequence_list():
+        for seq_no, sequence in enumerate(db.get_sequence_list()):
+            
+            
+            if debug and seq_no >= seq_limit:
+                break
             
             image_length = len(sequence.images)
 
