@@ -95,7 +95,7 @@ class Dataset(data.Dataset):
         db = DB_manager(data_file_path)
         
         debug = True
-        seq_limit = 100
+        seq_limit = 50
         
         # We need to ensure one fixed not randomized order of images because the approach has to index
         # the images always in the same way and os.walk does not ensure one fixed order

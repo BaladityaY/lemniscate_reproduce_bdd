@@ -192,8 +192,8 @@ def main():
 
         # train for one epoch
         train(train_loader, model, lemniscate, criterion, optimizer, epoch)
-        #print "Exited because this is a debug run"
-        #exit()
+        print "Exited because this is a debug run"
+        exit()
         # evaluate on validation set
         prec1, prec1_past, prec1_future = NN(epoch, model, lemniscate, train_loader, val_loader)
 
@@ -252,7 +252,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
     optimizer.zero_grad()
     
     # If training should be ended for debug purposes after a fixed amount of data samples
-    debug = True
+    debug = False
     debug_end_cycle = 5
     
     for i, (input_imgs,action_probabilities, indices) in enumerate(train_loader):
