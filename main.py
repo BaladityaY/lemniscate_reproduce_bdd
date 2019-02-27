@@ -247,7 +247,7 @@ def main():
                 'lemniscate': lemniscate,
                 'best_prec1': -1.,
                 'optimizer' : optimizer.state_dict(),
-            }, is_best=False, epoch)
+            }, False, epoch)
         
         
     # evaluate KNN after last epoch
