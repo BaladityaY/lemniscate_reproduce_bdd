@@ -87,6 +87,8 @@ parser.add_argument('--nce-m', default=0.5, type=float,
                     help='momentum for non-parametric updates')
 parser.add_argument('--iter_size', default=1, type=int,
                     help='caffe style iter size')
+parser.add_argument('-train-only', action='store_false',
+                    help='Do no testing after epochs')
 
 best_prec1 = -500000
 best_prec1_past = -500000
@@ -192,48 +194,60 @@ def main():
 
         # train for one epoch
         train(train_loader, model, lemniscate, criterion, optimizer, epoch)
-        #print "Exited because this is a debug run"
-        #exit()
-        # evaluate on validation set
-        prec1, prec1_past, prec1_future = NN(epoch, model, lemniscate, train_loader, val_loader)
-
-        add_epoch_score('epoch_scores.txt', epoch, prec1)
-        add_epoch_score('epoch_scores_past.txt', epoch, prec1_past)
-        add_epoch_score('epoch_scores_future.txt', epoch, prec1_future)
-  
-        # remember best prec@1 and save checkpoint
-        is_best = prec1 > best_prec1
-        best_prec1 = max(prec1, best_prec1)
-        save_checkpoint({
-            'epoch': epoch + 1,
-            'arch': args.arch,
-            'state_dict': model.state_dict(),
-            'lemniscate': lemniscate,
-            'best_prec1': best_prec1,
-            'optimizer' : optimizer.state_dict(),
-        }, is_best, epoch)
-
-        is_best_past = prec1_past > best_prec1_past
-        best_prec1_past = max(prec1_past, best_prec1_past)
-        save_checkpoint({
-            'epoch': epoch + 1,
-            'arch': args.arch,
-            'state_dict': model.state_dict(),
-            'lemniscate': lemniscate,
-            'best_prec1_past': best_prec1_past,
-            'optimizer' : optimizer.state_dict(),
-        }, is_best_past, epoch, best_mod='_past')
         
-        is_best_future = prec1_future > best_prec1_future
-        best_prec1_future = max(prec1_future, best_prec1_future)
-        save_checkpoint({
-            'epoch': epoch + 1,
-            'arch': args.arch,
-            'state_dict': model.state_dict(),
-            'lemniscate': lemniscate,
-            'best_prec1_future': best_prec1_future,
-            'optimizer' : optimizer.state_dict(),
-        }, is_best_future, epoch, best_mod='_future')
+        if not args.train_only:
+            # evaluate on validation set
+            prec1, prec1_past, prec1_future = NN(epoch, model, lemniscate, train_loader, val_loader)
+
+            add_epoch_score('epoch_scores.txt', epoch, prec1)
+            add_epoch_score('epoch_scores_past.txt', epoch, prec1_past)
+            add_epoch_score('epoch_scores_future.txt', epoch, prec1_future)
+      
+            # remember best prec@1 and save checkpoint
+            is_best = prec1 > best_prec1
+            best_prec1 = max(prec1, best_prec1)
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'arch': args.arch,
+                'state_dict': model.state_dict(),
+                'lemniscate': lemniscate,
+                'best_prec1': best_prec1,
+                'optimizer' : optimizer.state_dict(),
+            }, is_best, epoch)
+    
+            is_best_past = prec1_past > best_prec1_past
+            best_prec1_past = max(prec1_past, best_prec1_past)
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'arch': args.arch,
+                'state_dict': model.state_dict(),
+                'lemniscate': lemniscate,
+                'best_prec1_past': best_prec1_past,
+                'optimizer' : optimizer.state_dict(),
+            }, is_best_past, epoch, best_mod='_past')
+            
+            is_best_future = prec1_future > best_prec1_future
+            best_prec1_future = max(prec1_future, best_prec1_future)
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'arch': args.arch,
+                'state_dict': model.state_dict(),
+                'lemniscate': lemniscate,
+                'best_prec1_future': best_prec1_future,
+                'optimizer' : optimizer.state_dict(),
+            }, is_best_future, epoch, best_mod='_future')
+        else:
+            # If we train only, no precision scores will be known.
+            # They have to be measured in a second run. Still we save 
+            # the checkpoint
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'arch': args.arch,
+                'state_dict': model.state_dict(),
+                'lemniscate': lemniscate,
+                'best_prec1': -1.,
+                'optimizer' : optimizer.state_dict(),
+            }, is_best=False, epoch)
         
         
     # evaluate KNN after last epoch
