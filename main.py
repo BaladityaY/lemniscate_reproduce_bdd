@@ -263,7 +263,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         data_time.update(time.time() - end)
 
         indices = indices.to(get_device(args.gpu))
-        
+        input_imgs = input_imgs.to(get_device(args.gpu))
         # Change the image size so it fits to the network
         #input_imgs = resize2d(input_imgs, (224,224))
         # The images are now already in the right size
