@@ -128,7 +128,6 @@ def main():
             model.to('cuda')
         else:
             model = torch.nn.DataParallel(model).to('cuda')
-            model.to('cuda')
     else:
         model.to('cuda')
         model = torch.nn.parallel.DistributedDataParallel(model)
@@ -254,7 +253,7 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
     
     # If training should be ended for debug purposes after a fixed amount of data samples
     debug = True
-    debug_end_cycle = 50
+    debug_end_cycle = 5
     
     for i, (input_imgs,action_probabilities, indices) in enumerate(train_loader):
         
