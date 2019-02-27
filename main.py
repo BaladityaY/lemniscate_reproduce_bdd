@@ -250,9 +250,15 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
     end = time.time()
     optimizer.zero_grad()
     
+    # If training should be ended for debug purposes after a fixed amount of data samples
+    debug = True
+    debug_end_cycle = 50
     
     for i, (input_imgs,action_probabilities, indices) in enumerate(train_loader):
         
+        if debug and i >= debug_end_cycle:
+            exit()
+            
         # measure data loading time
         data_time.update(time.time() - end)
 
