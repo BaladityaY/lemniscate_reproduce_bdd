@@ -179,11 +179,12 @@ def main():
             print("=> no checkpoint found at '{}'".format(args.resume))
 
     cudnn.benchmark = True
-
+    
     if args.evaluate:
         kNN(0, model, lemniscate, train_loader, val_loader, 200, args.nce_t)
         return
 
+    
     for epoch in range(args.start_epoch, args.epochs):
 
         adjust_learning_rate(optimizer, epoch)
