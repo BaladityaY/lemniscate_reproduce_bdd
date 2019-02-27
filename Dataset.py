@@ -10,6 +10,7 @@ from bdd_tools import BDD_Helper
 from docutils.nodes import image
 import random
 from hdf5_wrapper import DB_manager
+import time
 
 def get_device(device_id = 0):
     device = torch.device("cuda")
@@ -64,7 +65,7 @@ class Data_Moment():
         return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]      
     
     def data_point(self):
-        
+        start = time.time()
         img_indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
         img_indices = np.delete(img_indices,0)
         
@@ -79,7 +80,7 @@ class Data_Moment():
         actions = BDD_Helper.turn_future_smooth(speeds, 5, 0)
         
         images = self.images[:][img_indices]
-        
+        print "Took {}".format(time.time()-start)
         return {'imgs':self.convert_images(images),  
                 'actions':actions}
     
