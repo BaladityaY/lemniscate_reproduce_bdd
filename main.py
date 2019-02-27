@@ -3,7 +3,7 @@
 import argparse
 import os
 import sys
-from future import division
+from __future__ import division
 import shutil
 import time
 
