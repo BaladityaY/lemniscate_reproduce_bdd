@@ -12,15 +12,9 @@ import random
 from hdf5_wrapper import DB_manager
 
 def get_device(device_id = 0):
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        torch.cuda.set_device(device_id)
-        torch.cuda.device(device_id)
-        return device
-    else:
-        device = torch.device("cpu")
-        device_name = "cpu"
-        return device
+    device = torch.device("cuda")
+    return device
+    
 
 def get_free_mem():
     meminfo = dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
@@ -101,7 +95,7 @@ class Dataset(data.Dataset):
         db = DB_manager(data_file_path)
         
         debug = True
-        seq_limit = 1000
+        seq_limit = 100
         
         # We need to ensure one fixed not randomized order of images because the approach has to index
         # the images always in the same way and os.walk does not ensure one fixed order

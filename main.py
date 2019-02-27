@@ -125,12 +125,12 @@ def main():
     if not args.distributed:
         if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
-            model.to(get_device(args.gpu))
+            model.to('cuda')
         else:
-            model = torch.nn.DataParallel(model).to(get_device(args.gpu))
-            model.to(get_device(args.gpu))
+            model = torch.nn.DataParallel(model).to('cuda')
+            model.to('cuda')
     else:
-        model.to(get_device(args.gpu))
+        model.to('cuda')
         model = torch.nn.parallel.DistributedDataParallel(model)
 
 
@@ -154,11 +154,11 @@ def main():
     # define lemniscate and loss function (criterion)
     ndata = train_dataset.__len__()
     if args.nce_k > 0:
-        lemniscate = NCEAverage(args.gpu, args.low_dim, ndata, args.nce_k, args.nce_t, args.nce_m).to(get_device(args.gpu))
-        criterion = NCECriterion(ndata).to(get_device(args.gpu))
+        lemniscate = NCEAverage(args.gpu, args.low_dim, ndata, args.nce_k, args.nce_t, args.nce_m).to('cuda')
+        criterion = NCECriterion(ndata).to('cuda')
     else:
-        lemniscate = LinearAverage(args.low_dim, ndata, args.nce_t, args.nce_m).to(get_device(args.gpu))
-        criterion = nn.CrossEntropyLoss().to(get_device(args.gpu))
+        lemniscate = LinearAverage(args.low_dim, ndata, args.nce_t, args.nce_m).to('cuda')
+        criterion = nn.CrossEntropyLoss().to('cuda')
 
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
@@ -185,7 +185,7 @@ def main():
         kNN(0, model, lemniscate, train_loader, val_loader, 200, args.nce_t)
         return
 
-    #criterion = criterion.to(get_device(args.gpu))
+    #criterion = criterion.to('cuda')
     
     for epoch in range(args.start_epoch, args.epochs):
 
@@ -264,9 +264,9 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         # measure data loading time
         data_time.update(time.time() - end)
 
-        indices = indices.to(get_device(args.gpu))
-        input_imgs = input_imgs.to(get_device(args.gpu))
-        action_probabilities = action_probabilities.to(get_device(args.gpu)) 
+        indices = indices.to('cuda')
+        input_imgs = input_imgs.to('cuda')
+        action_probabilities = action_probabilities.to('cuda') 
         # Change the image size so it fits to the network
         #input_imgs = resize2d(input_imgs, (224,224))
         # The images are now already in the right size
