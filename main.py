@@ -117,7 +117,8 @@ def main():
     if args.train_only and args.val_only:
         print "Error: Requested to do only training and only evaluation is mutually exclusive."
         exit() 
-    print len(args.resume)
+    print len(args.resume) < 1
+    print args.val_only
     if args.val_only and len(args.resume) < 1:
         print 'Error: Evaluation requested but no checkpoint given with --resume'
         exit()
