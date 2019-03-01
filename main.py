@@ -119,6 +119,7 @@ def main():
         exit() 
     print len(args.resume) < 1
     print args.val_only
+    print args.no_mem_loading
     if args.val_only and len(args.resume) < 1:
         print 'Error: Evaluation requested but no checkpoint given with --resume'
         exit()
