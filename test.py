@@ -79,7 +79,10 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             indexes = indexes.cuda(async=True)
             batchSize = input_imgs.size(0)
             
-            og_input_imgs = input_imgs.clone().cpu().numpy()
+            print "Size should be {} batchsize is {}".format(len(testloader.dataset)/batchSize, batchSize)
+            exit()
+            
+            #og_input_imgs = input_imgs.clone().cpu().numpy()
             og_targets = targets.clone().cpu().numpy()
             
             #print('input_imgs shape: {}'.format(input_imgs.shape))
