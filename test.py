@@ -79,9 +79,6 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
             indexes = indexes.cuda(async=True)
             batchSize = input_imgs.size(0)
             
-            print "Size should be {} batchsize is {}".format(len(testloader.dataset)/batchSize, batchSize)
-            exit()
-            
             #og_input_imgs = input_imgs.clone().cpu().numpy()
             og_targets = targets.clone().cpu().numpy()
             
@@ -191,11 +188,11 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=0):
                   'Net Time {net_time.val:.3f} ({net_time.avg:.3f})\t'
                   'Cls Time {cls_time.val:.3f} ({cls_time.avg:.3f})\t'
                   'Top5: {:.2f}'.format(
-                  total, testsize, correct/total, net_time=net_time, cls_time=cls_time))
+                  total, len(testloader), correct/total, net_time=net_time, cls_time=cls_time))
 
             
         with open('steer_eval_epoch{}.pkl'.format(epoch), 'wb') as handle:
-             pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(steer_eval, handle, protocol=pickle.HIGHEST_PROTOCOL)
                              
         #correct_rate = np.array(correct) # Changed this from correct_rate which was not known
         #print('correct_rate mean: {}, std: {}'.format(np.mean(correct_rate), np.std(correct_rate)))
