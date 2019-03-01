@@ -167,14 +167,10 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             image_steering_labels.append(np.array(img_steer_lab) - batch_i_steer)
             '''
             
-            #print('indexes shape: {}'.format(indexes.shape))
-            #print('indexes numbers: {}'.format(indexes))
-
-            total += indexes.shape[0]
-            #print('retrieval: {}'.format(len(retrieval)))
-            #print "targets {}".format(targets.shape)
-            #print indexes
-            #correct += retrieval.eq(indexes.data).sum().item()
+            # Sascha: The next line makes the reporting inconsistent with the reporting
+            # during training time. Changed the code here to have batches numbered and not
+            # individual data points
+            #total += indexes.shape[0]
             
             correct += np.sum(image_steering_labels)
             correct_past += np.sum(image_steering_labels_past)
@@ -187,7 +183,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
                   'Net Time {net_time.val:.3f} ({net_time.avg:.3f})\t'
                   'Cls Time {cls_time.val:.3f} ({cls_time.avg:.3f})\t'
                   'Top5: {:.2f}'.format(
-                  total, len(testloader), correct/total, net_time=net_time, cls_time=cls_time))
+                  batch_idx, len(testloader), correct/total, net_time=net_time, cls_time=cls_time))
 
             
         with open('steer_eval_epoch{}.pkl'.format(epoch), 'wb') as handle:
