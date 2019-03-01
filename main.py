@@ -87,11 +87,11 @@ parser.add_argument('--nce-m', default=0.5, type=float,
                     help='momentum for non-parametric updates')
 parser.add_argument('--iter_size', default=1, type=int,
                     help='caffe style iter size')
-parser.add_argument('--train-only', dest='train_only', action='store_false',
+parser.add_argument('--train-only',action='store_false',
                     help='Do no testing after epochs')
-parser.add_argument('--val-only',dest='val_only',action='store_false',
+parser.add_argument('--valonly',action='store_false',
                     help='Do no testing after epochs')
-parser.add_argument('--no-mem-loading', dest='no_mem_loading',action='store_false', help='Store as much data in memory as possible')
+parser.add_argument('--nomemloading', action='store_false', help='Store as much data in memory as possible')
 
 best_prec1 = -500000
 best_prec1_past = -500000
@@ -118,8 +118,8 @@ def main():
         print "Error: Requested to do only training and only evaluation is mutually exclusive."
         exit() 
     print len(args.resume) < 1
-    print args.val_only
-    print args.no_mem_loading
+    print args.valonly
+    print args.nomemloading
     if args.val_only and len(args.resume) < 1:
         print 'Error: Evaluation requested but no checkpoint given with --resume'
         exit()
