@@ -127,7 +127,8 @@ class Dataset(data.Dataset):
                     break                
                 
                 self.run_files.append(moment)
-                print len(self.run_files)   
+            
+            print len(self.run_files)/64 
         
     def __len__(self):
         return len(self.run_files)
