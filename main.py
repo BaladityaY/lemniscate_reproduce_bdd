@@ -87,7 +87,9 @@ parser.add_argument('--nce-m', default=0.5, type=float,
                     help='momentum for non-parametric updates')
 parser.add_argument('--iter_size', default=1, type=int,
                     help='caffe style iter size')
-parser.add_argument('-train-only', action='store_false',
+parser.add_argument('--train-only', action='store_false',
+                    help='Do no testing after epochs')
+parser.add_argument('--val-only', action='store_false',
                     help='Do no testing after epochs')
 
 best_prec1 = -500000
@@ -95,6 +97,7 @@ best_prec1_past = -500000
 best_prec1_future = -500000
 
 n_frames = 6
+
 
 def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,requires_grad=False), size)).data
@@ -109,6 +112,10 @@ def add_epoch_score(filename, epoch, score):
 def main():
     global args, best_prec1, best_prec1_past, best_prec1_future
     args = parser.parse_args()
+
+    if args.train_only and args.val_only:
+        print "Error: Requested to do only training and only evaluation is mutually exclusive."
+        exit() 
 
     args.distributed = args.world_size > 1
 
@@ -141,13 +148,16 @@ def main():
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    train_dataset = Dataset(training_file, n_frames)
+    if not args.val_only:
+        train_dataset = Dataset(training_file, n_frames)
+    
     val_dataset = Dataset(validation_file, n_frames)
-
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=True, #(train_sampler is None), 
-        num_workers=args.workers)
-
+    
+    if not args.val_only:
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=args.batch_size, shuffle=True, #(train_sampler is None), 
+            num_workers=args.workers)
+    
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers)
@@ -189,11 +199,13 @@ def main():
     #criterion = criterion.to('cuda')
     
     for epoch in range(args.start_epoch, args.epochs):
-
-        adjust_learning_rate(optimizer, epoch)
+        
+        if not args.val_only:
+            adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
-        train(train_loader, model, lemniscate, criterion, optimizer, epoch)
+        if not args.val_only:
+            train(train_loader, model, lemniscate, criterion, optimizer, epoch)
         
         if not args.train_only:
             # evaluate on validation set
