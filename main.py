@@ -118,6 +118,8 @@ def main():
         print "Error: Requested to do only training and only evaluation is mutually exclusive."
         exit() 
     
+    print "Csdlg hsdl"
+    print args.resume 
     if args.val_only and args.resume == '':
         print 'Error: Evaluation requested but no checkpoint given with --resume'
         exit()
