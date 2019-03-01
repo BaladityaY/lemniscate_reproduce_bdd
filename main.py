@@ -91,6 +91,7 @@ parser.add_argument('--train-only', action='store_false',
                     help='Do no testing after epochs')
 parser.add_argument('--val-only', action='store_false',
                     help='Do no testing after epochs')
+parser.add_argument('--load-to-mem', action='store_true', help='Store as much data in memory as possible')
 
 best_prec1 = -500000
 best_prec1_past = -500000
@@ -149,9 +150,9 @@ def main():
                                      std=[0.229, 0.224, 0.225])
 
     if not args.val_only:
-        train_dataset = Dataset(training_file, n_frames)
+        train_dataset = Dataset(training_file, n_frames, preload_to_mem=args.load_to_mem)
     
-    val_dataset = Dataset(validation_file, n_frames)
+    val_dataset = Dataset(validation_file, n_frames, preload_to_mem=args.load_to_mem)
     
     if not args.val_only:
         train_loader = torch.utils.data.DataLoader(
