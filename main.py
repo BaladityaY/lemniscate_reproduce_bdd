@@ -117,9 +117,7 @@ def main():
     if args.train_only and args.val_only:
         print "Error: Requested to do only training and only evaluation is mutually exclusive."
         exit() 
-    print len(args.resume) < 1
-    print args.val_only
-    print args.no_mem_loading
+    
     if args.val_only and len(args.resume) < 1:
         print 'Error: Evaluation requested but no checkpoint given with --resume'
         exit()
@@ -155,22 +153,23 @@ def main():
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
 
-    if not args.val_only:
-        train_dataset = Dataset(training_file, n_frames, preload_to_mem=not args.no_mem_loading)
+    
+    train_dataset = Dataset(training_file, n_frames, preload_to_mem=not args.no_mem_loading)
     
     val_dataset = Dataset(validation_file, n_frames, preload_to_mem=not args.no_mem_loading)
     
-    if not args.val_only:
-        train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batch_size, shuffle=True, #(train_sampler is None), 
-            num_workers=args.workers)
-    
+
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=args.batch_size, shuffle=True, #(train_sampler is None), 
+        num_workers=args.workers)
+
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers)
 
     # define lemniscate and loss function (criterion)
     ndata = train_dataset.__len__()
+    
     if args.nce_k > 0:
         lemniscate = NCEAverage(args.gpu, args.low_dim, ndata, args.nce_k, args.nce_t, args.nce_m).to('cuda')
         criterion = NCECriterion(ndata).to('cuda')
