@@ -114,7 +114,7 @@ def main():
     global args, best_prec1, best_prec1_past, best_prec1_future
     args = parser.parse_args()
 
-    if args.train_only and args.val_only:
+    if args.train_only and args.valonly:
         print "Error: Requested to do only training and only evaluation is mutually exclusive."
         exit() 
     print len(args.resume) < 1
