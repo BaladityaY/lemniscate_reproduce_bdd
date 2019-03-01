@@ -87,11 +87,11 @@ parser.add_argument('--nce-m', default=0.5, type=float,
                     help='momentum for non-parametric updates')
 parser.add_argument('--iter_size', default=1, type=int,
                     help='caffe style iter size')
-parser.add_argument('--train-only',action='store_false',
+parser.add_argument('--train-only',action='store_true', default=False,
                     help='Do no testing after epochs')
-parser.add_argument('--val-only',action='store_false',
+parser.add_argument('--val-only',action='store_true',default=False,
                     help='Do no testing after epochs')
-parser.add_argument('--no-mem-loading',action='store_false', help='Store as much data in memory as possible')
+parser.add_argument('--no-mem-loading',action='store_true', default=False,help='Store as much data in memory as possible')
 
 best_prec1 = -500000
 best_prec1_past = -500000
