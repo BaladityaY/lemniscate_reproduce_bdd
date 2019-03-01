@@ -117,6 +117,10 @@ def main():
     if args.train_only and args.val_only:
         print "Error: Requested to do only training and only evaluation is mutually exclusive."
         exit() 
+    
+    if args.val_only and not args.resume:
+        print 'Error: Evaluation requested but no checkpoint given with --resume'
+        exit()
 
     args.distributed = args.world_size > 1
 
@@ -262,6 +266,9 @@ def main():
                 'optimizer' : optimizer.state_dict(),
             }, False, epoch)
         
+        if args.val_only:
+            # Exit after evaluating this checkpoint
+            exit()
         
     # evaluate KNN after last epoch
     kNN(0, model, lemniscate, train_loader, val_loader, 200, args.nce_t)
