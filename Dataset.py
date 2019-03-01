@@ -126,7 +126,8 @@ class Dataset(data.Dataset):
                     # print("Moment too short")
                     break                
                 
-                self.run_files.append(moment)   
+                self.run_files.append(moment)
+                print len(self.run_files)   
         
     def __len__(self):
         return len(self.run_files)
