@@ -37,6 +37,8 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
     cls_time = AverageMeter()
     losses = AverageMeter()
 
+    start_time = time.time()
+
     topk = 50
     steer_eval = {}
     
@@ -73,9 +75,14 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
     end = time.time()
     with torch.no_grad():
         
+        print "Start of testing {}".format(time.time() - start_time)
         for batch_idx, (input_imgs, targets, indexes) in enumerate(testloader):
             targets = targets.cuda(async=True)
             indexes = indexes.cuda(async=True)
+            input_imgs = input_imgs.cuda(async=True)
+            
+            print "Elements loaded onto GPU {}".format(time.time() - start_time)
+            
             batchSize = input_imgs.size(0)
             print "Batch {} of {}".format(batch_idx,len(testloader))
             #og_input_imgs = input_imgs.clone().cpu().numpy()
@@ -91,6 +98,9 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             # The new images are already in the right size
             #print input_imgs.size()
             features = net(input_imgs, targets)
+            
+            print "Images and targets put through network {}".format(time.time() - start_time)
+            
             net_time.update(time.time() - end)
             end = time.time()
 
@@ -105,6 +115,8 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             
             #print('retrieval shape: {}'.format(retrieval.shape))
             #print('retrieval numbers: {}'.format(retrieval))
+            
+            print "Top 50 NNs retrieved {}".format(time.time() - start_time)
             
             image_steering_labels = []
             image_steering_labels_past = []
@@ -151,6 +163,8 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             image_steering_labels_past = -1*np.array(image_steering_labels_past)
             image_steering_labels_future = -1*np.array(image_steering_labels_future)
             
+            print "Loss calculated {}".format(time.time() - start_time)
+            
             #print('image_steering_labels shape: {}'.format(image_steering_labels.shape))
             #print('image_steering_labels numbers: {}'.format(image_steering_labels))
             #image_steering_labels = 1 - image_steering_labels
@@ -178,6 +192,8 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             
             cls_time.update(time.time() - end)
             end = time.time()
+            
+            print "Batch finished {}".format(time.time() - start_time)
 
             print('Test [{}/{}]\t'
                   'Net Time {net_time.val:.3f} ({net_time.avg:.3f})\t'
