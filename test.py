@@ -32,7 +32,7 @@ def bce(t1, t2):
     criterion = nn.BCELoss(reduce=False)
     loss = criterion(t1, t2)
 
-    return np.mean(np.array(loss).flatten())
+    return loss.mean().flatten()
 
 def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
     net.eval()
