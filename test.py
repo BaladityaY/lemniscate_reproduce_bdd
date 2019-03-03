@@ -89,7 +89,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             batchSize = input_imgs.size(0)
             print "Batch {} of {}".format(batch_idx,len(testloader))
             #og_input_imgs = input_imgs.clone().cpu().numpy()
-            og_targets = targets.clone().cpu().numpy()
+            og_targets = targets.clone()
             
             #print('input_imgs shape: {}'.format(input_imgs.shape))
             #print('og_targets: {}'.format(og_targets))
@@ -113,7 +113,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             candidates = trainLabels.view(1,-1).expand(batchSize, -1)
             retrieval = torch.gather(candidates, 1, yi)
 
-            retrieval = retrieval.narrow(1, 0, topk).clone().cpu().numpy()#.view(-1)
+            retrieval = retrieval.narrow(1, 0, topk).clone()
             yd = yd.narrow(1, 0, topk)
             
             #print('retrieval shape: {}'.format(retrieval.shape))
