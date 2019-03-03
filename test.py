@@ -146,6 +146,9 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
                     print "Calculation for one of the top5s {}".format(time.time() - start_time)
                     ret_ind = int(retrieval[batch_id, top_id])
                     img_steer_lab = trainloader.dataset[ret_ind][1]
+                    print "Output from trainloader {}".format(trainloader.dataset[ret_ind])
+                    print "Label from loader {}".format(img_steer_lab)
+                    #print "Label from candidate list {}".format(candidates[])
                     #img_steer_lab = trainloader.dataset.get_label(retrieval[batch_id, top_id])[1] #old way
                     #image_steering_label += bce(img_steer_lab, batch_i_steer) #np.abs((np.array(img_steer_lab) - batch_i_steer)/2.)
                     #image_steering_label_past += bce(img_steer_lab[0:3], batch_i_steer[0:3]) #np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)

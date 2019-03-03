@@ -62,7 +62,21 @@ class Data_Moment():
         
         
     def convert_images(self, encoded_images):
-        return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]      
+        return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]
+    
+    def data_label(self):
+        speed_indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
+
+        # Speeds are one list, twice the size of images, because they are flattened out pairs of values.
+        # They have to be reshaped to be pairs. It would be possible to select first the range on where
+        # to do the reshape operation and then do it though it is assumed the operation takes about the
+        # same time so we first reshape because then indexing becomes easier, as it is equal to image indexing.
+        speeds = np.reshape(self.speeds, [-1, 2])
+        speeds = speeds[speed_indices]
+        actions = BDD_Helper.turn_future_smooth(speeds, 5, 0)
+        
+        return {'actions':actions}
+    
     
     def data_point(self):
         
