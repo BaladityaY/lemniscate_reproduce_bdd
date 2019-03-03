@@ -143,6 +143,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
 
                 #print batch_i_steer
                 for top5_id in range(topk):
+                    print "Calculation for one of the top5s {}".format(time.time() - start_time)
                     ret_ind = int(retrieval[batch_id, top5_id])
                     img_steer_lab = trainloader.dataset[ret_ind][1]
                     #img_steer_lab = trainloader.dataset.get_label(retrieval[batch_id, top5_id])[1] #old way
@@ -153,7 +154,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
                     #nn_steers.append(img_steer_lab.clone().data.cpu().numpy())
                     nn_steers.append(1.)
                     nn_ids.append(ret_ind)
-
+                print "Writing into dicts {}".format(time.time() - start_time)
                 steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
                 steer_eval[indexes[batch_id]]['nn_ids'] = np.array(nn_ids)
                     
