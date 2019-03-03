@@ -141,7 +141,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
                 #print batch_i_steer
                 for top5_id in range(topk):
                     ret_ind = int(retrieval[batch_id, top5_id])
-                    img_steer_lab = trainloader.dataset[ret_ind][1].cpu().numpy() # 6x6
+                    img_steer_lab = trainloader.dataset[ret_ind][1]
                     #img_steer_lab = trainloader.dataset.get_label(retrieval[batch_id, top5_id])[1] #old way
                     image_steering_label += bce(img_steer_lab, batch_i_steer) #np.abs((np.array(img_steer_lab) - batch_i_steer)/2.)
                     image_steering_label_past += bce(img_steer_lab[0:3], batch_i_steer[0:3]) #np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
