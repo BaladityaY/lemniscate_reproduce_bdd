@@ -22,9 +22,9 @@ def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,volatile=True), size)).data
 
 
-def bce(a1, a2):
-    t1 = Variable(torch.from_numpy(a1).type(torch.FloatTensor))
-    t2 = Variable(torch.from_numpy(a2).type(torch.FloatTensor))
+def bce(t1, t2):
+    #t1 = Variable(torch.from_numpy(a1).type(torch.FloatTensor))
+    #t2 = Variable(torch.from_numpy(a2).type(torch.FloatTensor))
 
     criterion = nn.BCELoss(reduce=False)
     loss = criterion(t1, t2)
