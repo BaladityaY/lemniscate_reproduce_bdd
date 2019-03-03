@@ -26,8 +26,8 @@ def bce(t1, t2):
     #t1 = Variable(torch.from_numpy(a1).type(torch.FloatTensor))
     #t2 = Variable(torch.from_numpy(a2).type(torch.FloatTensor))
 
-    print t1
-    print t2
+    #print t1
+    #print t2
 
     criterion = nn.BCELoss(reduce=False)
     loss = criterion(t1, t2)
@@ -150,7 +150,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
                     image_steering_label_past += bce(img_steer_lab[0:3], batch_i_steer[0:3]) #np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
                     image_steering_label_future += bce(img_steer_lab[3:6], batch_i_steer[3:6]) #np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
 
-                    nn_steers.append(img_steer_lab)
+                    nn_steers.append(img_steer_lab.data.cpu().numpy())
                     nn_ids.append(ret_ind)
 
                 steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
