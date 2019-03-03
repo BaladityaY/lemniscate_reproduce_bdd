@@ -26,6 +26,9 @@ def bce(t1, t2):
     #t1 = Variable(torch.from_numpy(a1).type(torch.FloatTensor))
     #t2 = Variable(torch.from_numpy(a2).type(torch.FloatTensor))
 
+    print t1
+    print t2
+
     criterion = nn.BCELoss(reduce=False)
     loss = criterion(t1, t2)
 
