@@ -31,7 +31,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
 
     start_time = time.time()
 
-    topk = 50
+    topk = 5 # It became evident that the top 5 NNs are sufficient for the best results
     steer_eval = {}
     
     correct = 0.
@@ -70,7 +70,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
         criterion = nn.BCELoss(reduce=False)
         bce = lambda t1, t2: criterion(t1, t2).mean().flatten()
         
-        if debug: print "Start of testing {}".format(time.time() - start_time)
+        print "Start of testing {}".format(time.time() - start_time)
         for batch_idx, (input_imgs, targets, indexes) in enumerate(testloader):
             targets = targets.cuda(async=True)
             indexes = indexes.cuda(async=True)
@@ -111,7 +111,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             #print('retrieval shape: {}'.format(retrieval.shape))
             #print('retrieval numbers: {}'.format(retrieval))
             
-            print "Top 50 NNs retrieved {}".format(time.time() - start_time)
+            
             
             image_steering_labels = []
             image_steering_labels_past = []
@@ -195,7 +195,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             cls_time.update(time.time() - end)
             end = time.time()
             
-            if debug: print "Batch finished {}".format(time.time() - start_time)
+            print "Batch finished. Total time elapsed: {}".format(time.time() - start_time)
 
             print('Test [{}/{}]\t'
                   'Net Time {net_time.val:.3f} ({net_time.avg:.3f})\t'
