@@ -146,7 +146,6 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
                     image_steering_label_past += bce(img_steer_lab[0:3], batch_i_steer[0:3]) #np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
                     image_steering_label_future += bce(img_steer_lab[3:6], batch_i_steer[3:6]) #np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
                     
-                    print image_steering_label
 
                     nn_steers.append(img_steer_lab.clone().data.cpu().numpy())
                     #nn_steers.append(1.)
@@ -167,26 +166,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             
             if debug: print "Loss calculated {}".format(time.time() - start_time)
             
-            #if debug: print('image_steering_labels shape: {}'.format(image_steering_labels.shape))
-            #if debug: print('image_steering_labels numbers: {}'.format(image_steering_labels))
-            #image_steering_labels = 1 - image_steering_labels
-            #image_steering_labels_past = 1 - image_steering_labels_past
-            #image_steering_labels_future = 1 - image_steering_labels_future
-            
-            #if debug: print('image_steering_labels numbers 2: {}'.format(image_steering_labels))
-            
-            '''
-            batch_i_steer = np.array(targets[batch_id,:])
-            
-            img_steer_lab = trainloader.dataset.get_label(retrieval_index)[1]
-                    
-            image_steering_labels.append(np.array(img_steer_lab) - batch_i_steer)
-            '''
-            
-            # Sascha: The next line makes the reporting inconsistent with the reporting
-            # during training time. Changed the code here to have batches numbered and not
-            # individual data points
-            #total += indexes.shape[0]
+            total += indexes.shape[0]
             
             correct += np.sum(image_steering_labels)
             correct_past += np.sum(image_steering_labels_past)
