@@ -22,23 +22,12 @@ def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,volatile=True), size)).data
 
 
-def bce(t1, t2):
-    #t1 = Variable(torch.from_numpy(a1).type(torch.FloatTensor))
-    #t2 = Variable(torch.from_numpy(a2).type(torch.FloatTensor))
-
-    #print t1
-    #print t2
-
-    criterion = nn.BCELoss(reduce=False)
-    loss = criterion(t1, t2)
-
-    return loss.mean().flatten()
-
 def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
     net.eval()
     net_time = AverageMeter()
     cls_time = AverageMeter()
     losses = AverageMeter()
+    debug = False
 
     start_time = time.time()
 
@@ -78,16 +67,19 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
     end = time.time()
     with torch.no_grad():
         
-        print "Start of testing {}".format(time.time() - start_time)
+        criterion = nn.BCELoss(reduce=False)
+        bce = lambda t1, t2: criterion(t1, t2).mean().flatten()
+        
+        if debug: print "Start of testing {}".format(time.time() - start_time)
         for batch_idx, (input_imgs, targets, indexes) in enumerate(testloader):
             targets = targets.cuda(async=True)
             indexes = indexes.cuda(async=True)
             input_imgs = input_imgs.cuda(async=True)
             
-            print "Elements loaded onto GPU {}".format(time.time() - start_time)
+            if debug: print "Elements loaded onto GPU {}".format(time.time() - start_time)
             
             batchSize = input_imgs.size(0)
-            print "Batch {} of {}".format(batch_idx,len(testloader))
+            if debug: print "Batch {} of {}".format(batch_idx,len(testloader))
             #og_input_imgs = input_imgs.clone().cpu().numpy()
             og_targets = targets.clone()
             
@@ -102,7 +94,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             #print input_imgs.size()
             features = net(input_imgs, targets)
             
-            print "Images and targets put through network {}".format(time.time() - start_time)
+            if debug: print "Images and targets put through network {}".format(time.time() - start_time)
             
             net_time.update(time.time() - end)
             end = time.time()
@@ -143,21 +135,23 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
 
                 #print batch_i_steer
                 for top_id in range(topk):
-                    print "Calculation for one of the top5s {}".format(time.time() - start_time)
+                    if debug: print "Calculation for one of the top5s {}".format(time.time() - start_time)
                     ret_ind = int(retrieval[batch_id, top_id])
                     img_steer_lab = trainloader.dataset.__getlabel__(ret_ind)[0]
-                    #print "Output from trainloader {}".format()
-                    #print "Label from loader {}".format(img_steer_lab)
-                    #print "Label from candidate list {}".format(candidates[])
+                    #if debug: print "Output from trainloader {}".format()
+                    #if debug: print "Label from loader {}".format(img_steer_lab)
+                    #if debug: print "Label from candidate list {}".format(candidates[])
                     #img_steer_lab = trainloader.dataset.get_label(retrieval[batch_id, top_id])[1] #old way
                     image_steering_label += bce(img_steer_lab, batch_i_steer) #np.abs((np.array(img_steer_lab) - batch_i_steer)/2.)
                     image_steering_label_past += bce(img_steer_lab[0:3], batch_i_steer[0:3]) #np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
                     image_steering_label_future += bce(img_steer_lab[3:6], batch_i_steer[3:6]) #np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
+                    
+                    
 
                     nn_steers.append(img_steer_lab.clone().data.cpu().numpy())
                     #nn_steers.append(1.)
                     nn_ids.append(ret_ind)
-                print "Writing into dicts {}".format(time.time() - start_time)
+                if debug: print "Writing into dicts {}".format(time.time() - start_time)
                 steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
                 steer_eval[indexes[batch_id]]['nn_ids'] = np.array(nn_ids)
                     
@@ -171,15 +165,15 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             image_steering_labels_past = -1*np.array(image_steering_labels_past)
             image_steering_labels_future = -1*np.array(image_steering_labels_future)
             
-            print "Loss calculated {}".format(time.time() - start_time)
+            if debug: print "Loss calculated {}".format(time.time() - start_time)
             
-            #print('image_steering_labels shape: {}'.format(image_steering_labels.shape))
-            #print('image_steering_labels numbers: {}'.format(image_steering_labels))
+            #if debug: print('image_steering_labels shape: {}'.format(image_steering_labels.shape))
+            #if debug: print('image_steering_labels numbers: {}'.format(image_steering_labels))
             #image_steering_labels = 1 - image_steering_labels
             #image_steering_labels_past = 1 - image_steering_labels_past
             #image_steering_labels_future = 1 - image_steering_labels_future
             
-            #print('image_steering_labels numbers 2: {}'.format(image_steering_labels))
+            #if debug: print('image_steering_labels numbers 2: {}'.format(image_steering_labels))
             
             '''
             batch_i_steer = np.array(targets[batch_id,:])
@@ -201,7 +195,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
             cls_time.update(time.time() - end)
             end = time.time()
             
-            print "Batch finished {}".format(time.time() - start_time)
+            if debug: print "Batch finished {}".format(time.time() - start_time)
 
             print('Test [{}/{}]\t'
                   'Net Time {net_time.val:.3f} ({net_time.avg:.3f})\t'
