@@ -146,7 +146,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
                     image_steering_label_past += bce(img_steer_lab[0:3], batch_i_steer[0:3]) #np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
                     image_steering_label_future += bce(img_steer_lab[3:6], batch_i_steer[3:6]) #np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
                     
-                    
+                    print image_steering_label
 
                     nn_steers.append(img_steer_lab.clone().data.cpu().numpy())
                     #nn_steers.append(1.)
