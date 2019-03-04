@@ -65,6 +65,10 @@ class Data_Moment():
         return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]
     
     def data_label(self):
+        '''
+        
+        Experimental method if the label can be loaded faster than a image,label pair
+        '''
         speed_indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
 
         # Speeds are one list, twice the size of images, because they are flattened out pairs of values.
@@ -169,6 +173,12 @@ class Dataset(data.Dataset):
         all_actions = torch.from_numpy(data_moment.data_point()['actions'][:]).float().to(get_device())
         
         return camera_data, all_actions, index
+    
+    def __getlabel__(self,index):
+        data_moment = self.run_files[index]        
+        all_actions = torch.from_numpy(data_moment.data_label()['actions'][:]).float().to(get_device())
+        
+        return all_actions, index
     
     @property
     def train_labels(self):

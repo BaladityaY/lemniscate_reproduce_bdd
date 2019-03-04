@@ -145,17 +145,17 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
                 for top_id in range(topk):
                     print "Calculation for one of the top5s {}".format(time.time() - start_time)
                     ret_ind = int(retrieval[batch_id, top_id])
-                    img_steer_lab = trainloader.dataset[ret_ind][1]
-                    print "Output from trainloader {}".format(trainloader.dataset[ret_ind])
-                    print "Label from loader {}".format(img_steer_lab)
+                    img_steer_lab = trainloader.dataset.__getlabel__[ret_ind][0]
+                    #print "Output from trainloader {}".format()
+                    #print "Label from loader {}".format(img_steer_lab)
                     #print "Label from candidate list {}".format(candidates[])
                     #img_steer_lab = trainloader.dataset.get_label(retrieval[batch_id, top_id])[1] #old way
-                    #image_steering_label += bce(img_steer_lab, batch_i_steer) #np.abs((np.array(img_steer_lab) - batch_i_steer)/2.)
-                    #image_steering_label_past += bce(img_steer_lab[0:3], batch_i_steer[0:3]) #np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
-                    #image_steering_label_future += bce(img_steer_lab[3:6], batch_i_steer[3:6]) #np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
+                    image_steering_label += bce(img_steer_lab, batch_i_steer) #np.abs((np.array(img_steer_lab) - batch_i_steer)/2.)
+                    image_steering_label_past += bce(img_steer_lab[0:3], batch_i_steer[0:3]) #np.abs((np.array(img_steer_lab[0:3]) - batch_i_steer[0:3])/2.)
+                    image_steering_label_future += bce(img_steer_lab[3:6], batch_i_steer[3:6]) #np.abs((np.array(img_steer_lab[3:6]) - batch_i_steer[3:6])/2.)
 
-                    #nn_steers.append(img_steer_lab.clone().data.cpu().numpy())
-                    nn_steers.append(1.)
+                    nn_steers.append(img_steer_lab.clone().data.cpu().numpy())
+                    #nn_steers.append(1.)
                     nn_ids.append(ret_ind)
                 print "Writing into dicts {}".format(time.time() - start_time)
                 steer_eval[indexes[batch_id]]['nn_steers'] = np.array(nn_steers)
