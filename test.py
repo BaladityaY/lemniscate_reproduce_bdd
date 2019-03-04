@@ -145,7 +145,7 @@ def NN(epoch, net, lemniscate, trainloader, testloader, recompute_memory=False):
                 for top_id in range(topk):
                     print "Calculation for one of the top5s {}".format(time.time() - start_time)
                     ret_ind = int(retrieval[batch_id, top_id])
-                    img_steer_lab = trainloader.dataset.__getlabel__[ret_ind][0]
+                    img_steer_lab = trainloader.dataset.__getlabel__(ret_ind)[0]
                     #print "Output from trainloader {}".format()
                     #print "Label from loader {}".format(img_steer_lab)
                     #print "Label from candidate list {}".format(candidates[])
