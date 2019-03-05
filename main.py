@@ -223,37 +223,20 @@ def main():
       
             # remember best prec@1 and save checkpoint
             is_best = prec1 > best_prec1
-            best_prec1 = max(prec1, best_prec1)
+            best_prec1 = max(prec1, best_prec1)            
+            best_prec1_past = max(prec1_past, best_prec1_past)
+            best_prec1_future = max(prec1_future, best_prec1_future)
+            
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
                 'lemniscate': lemniscate,
                 'best_prec1': best_prec1,
-                'optimizer' : optimizer.state_dict(),
-            }, is_best, epoch)
-    
-            is_best_past = prec1_past > best_prec1_past
-            best_prec1_past = max(prec1_past, best_prec1_past)
-            save_checkpoint({
-                'epoch': epoch + 1,
-                'arch': args.arch,
-                'state_dict': model.state_dict(),
-                'lemniscate': lemniscate,
                 'best_prec1_past': best_prec1_past,
-                'optimizer' : optimizer.state_dict(),
-            }, is_best_past, epoch, best_mod='_past')
-            
-            is_best_future = prec1_future > best_prec1_future
-            best_prec1_future = max(prec1_future, best_prec1_future)
-            save_checkpoint({
-                'epoch': epoch + 1,
-                'arch': args.arch,
-                'state_dict': model.state_dict(),
-                'lemniscate': lemniscate,
                 'best_prec1_future': best_prec1_future,
                 'optimizer' : optimizer.state_dict(),
-            }, is_best_future, epoch, best_mod='_future')
+            }, is_best, epoch, filename = 'evaluated_checkpoint.pth.tar')
         else:
             # If we train only, no precision scores will be known.
             # They have to be measured in a second run. Still we save 
@@ -263,7 +246,6 @@ def main():
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
                 'lemniscate': lemniscate,
-                'best_prec1': -1.,
                 'optimizer' : optimizer.state_dict(),
             }, False, epoch)
         
@@ -345,12 +327,12 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         
 
 
-def save_checkpoint(state, is_best, epoch, filename='checkpoint.pth.tar', best_mod=''):
+def save_checkpoint(state, is_best, epoch, filename='checkpoint.pth.tar'):
     filename_split = filename.split('.')
     filename = filename_split[0] + '_epoch{:02d}'.format(epoch) + '.' + filename_split[1] + '.' + filename_split[2]
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best{}.pth.tar'.format(best_mod))
+        shutil.copyfile(filename, 'model_best.pth.tar')
 
 def adjust_learning_rate(optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 100 epochs"""
