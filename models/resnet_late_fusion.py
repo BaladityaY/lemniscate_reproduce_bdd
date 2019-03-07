@@ -101,7 +101,7 @@ class ResNet(nn.Module):
         self.inplanes = 64
         super(ResNet, self).__init__()
         
-        self.conv1 = nn.Conv2d(n_frames*3, 64, kernel_size=7, stride=2, padding=3,
+        self.conv1 = nn.Conv2d(int((n_frames/2)*3), 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
