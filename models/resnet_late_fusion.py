@@ -218,8 +218,7 @@ class ResNet(nn.Module):
         return all_flow_fields
 
     def forward(self, x, action_probabilities):
-        print x.size()
-        exit()
+        
         x = self.conv1(x)
         
         x = self.bn1(x)
