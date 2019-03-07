@@ -137,7 +137,7 @@ def main():
         model = models.__dict__[args.arch](pretrained=True)
     else:
         print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch](low_dim=args.low_dim)
+        model = models.__dict__[args.arch](n_frames=n_frames,low_dim=args.low_dim)
 
     if not args.distributed:
         if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
