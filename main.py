@@ -92,12 +92,15 @@ parser.add_argument('--train-only',action='store_true', default=False,
 parser.add_argument('--val-only',action='store_true',default=False,
                     help='Do no testing after epochs')
 parser.add_argument('--no-mem-loading',action='store_true', default=False,help='Store as much data in memory as possible')
+parser.add_argument('--n-frames', default=6, type=int,
+                    help='number of used frames in total')
 
 best_prec1 = -500000
 best_prec1_past = -500000
 best_prec1_future = -500000
 
-n_frames = 6
+args = parser.parse_args()
+n_frames = args.n_frames
 
 
 def resize2d(img, size):
@@ -112,7 +115,7 @@ def add_epoch_score(filename, epoch, score):
 
 def main():
     global args, best_prec1, best_prec1_past, best_prec1_future
-    args = parser.parse_args()
+    
 
     if args.train_only and args.val_only:
         print "Error: Requested to do only training and only evaluation is mutually exclusive."
