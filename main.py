@@ -100,7 +100,8 @@ best_prec1_past = -500000
 best_prec1_future = -500000
 
 args = parser.parse_args()
-n_frames = args.n_frames
+n_frames = int(args.n_frames)
+print "Using n_frames = {}".format(n_frames)
 
 if not n_frames % 2 == 0:
             print "The amount of frames has to be an even number"
