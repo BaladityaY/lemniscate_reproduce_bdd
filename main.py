@@ -102,7 +102,9 @@ best_prec1_future = -500000
 args = parser.parse_args()
 n_frames = args.n_frames
 
-
+if not n_frames % 2 == 0:
+            print "The amount of frames has to be an even number"
+            
 def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,requires_grad=False), size)).data
 
@@ -289,8 +291,10 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         # Change the image size so it fits to the network
         #input_imgs = resize2d(input_imgs, (224,224))
         # The images are now already in the right size
-        input_imgs = input_imgs[:,0:9,:,:] #extract the first 3 images
-        action_probabilities = action_probabilities[:,0:3] #extract steers first 3 out of 6 
+        
+        
+        input_imgs = input_imgs[:,0:(n_frames/2)*3,:,:] #extract the first half of the images
+        action_probabilities = action_probabilities[:,0:(n_frames/2)] #extract steers first 3 out of 6 
                 
 # Code to see the images        
 #         for j in range(input_imgs.size()[0]):
