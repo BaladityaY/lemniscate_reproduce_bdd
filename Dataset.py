@@ -54,6 +54,9 @@ class Data_Moment():
         
         self.start_index = start_index
         self.stop_index = self.start_index + (n_frames*frame_gap) 
+        print self.stop_index
+        print self.start_index
+        exit()
         self.frame_gap = frame_gap
         if self.stop_index >= len(self.images):
             self.invalid = True
