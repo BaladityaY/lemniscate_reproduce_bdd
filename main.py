@@ -293,8 +293,10 @@ def train(train_loader, model, lemniscate, criterion, optimizer, epoch):
         #input_imgs = resize2d(input_imgs, (224,224))
         # The images are now already in the right size
         
-        
-        input_imgs = input_imgs[:,0:(n_frames/2)*3,:,:] #extract the first half of the images
+        print (n_frames/2)*3
+        print int((n_frames/2)*3)
+        exit()
+        input_imgs = input_imgs[:,0:,:,:] #extract the first half of the images
         action_probabilities = action_probabilities[:,0:(n_frames/2)] #extract steers first 3 out of 6 
                 
 # Code to see the images        
