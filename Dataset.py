@@ -120,7 +120,7 @@ class Dataset(data.Dataset):
         # We need to ensure one fixed not randomized order of images because the approach has to index
         # the images always in the same way and os.walk does not ensure one fixed order
         for seq_no, sequence in enumerate(db.get_sequence_list()):
-                        
+            print "Loading seq {}".format(seq_no)            
             if debug and seq_no >= seq_limit:
                 break
             
