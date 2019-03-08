@@ -33,9 +33,11 @@ class DB_manager(object):
         file_keys = hdf5_file.keys()
         
         self.sequences = []
-        
-        for file_key in file_keys:
+        sequences_length = len(file_keys)
+        for i, file_key in enumerate(file_keys):
             
+            if i%100==0:
+                print "Loading hdf5 key {} from {}".format(i,sequences_length)
             images = hdf5_file[file_key]['image']['encoded']                
             speeds = hdf5_file[file_key]['image']['speeds']
             self.sequences.append(DB_item(images,speeds))
