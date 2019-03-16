@@ -12,18 +12,20 @@ import random
 from hdf5_wrapper import DB_manager
 
 
-def get_device(device_id = 0):
+def get_device(device_id=0):
     device = torch.device("cuda")
     return device
     
 
 def get_free_mem():
-    meminfo = dict((i.split()[0].rstrip(':'),int(i.split()[1])) for i in open('/proc/meminfo').readlines())
+    meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1])) for i in open('/proc/meminfo').readlines())
     mem_available = float(meminfo['MemAvailable'])
     mem_total = float(meminfo['MemTotal'])
-    return (mem_available/mem_total)*100.
+    return (mem_available / mem_total) * 100.
+
 
 memory_data_buffer = {}
+
 
 def load_to_mem(hdf_reference):
     '''
@@ -36,16 +38,25 @@ def load_to_mem(hdf_reference):
     # Return a pointer to the data in the dict
     return memory_data_buffer.get(hdf_reference)
 
+
 class Data_Moment():
     
-    def __init__(self, sequence, start_index, n_frames, frame_gap, preload_to_mem = False):
+    def __init__(self, sequence, start_index, n_frames, frame_gap, preload_to_mem=False):
         '''
         There can be no calculation with content of the hdf5 file or a selection of ranges here
         because that will slow down loading and put a lot of data in memory
         '''        
         
         self.images = load_to_mem(sequence.images) if preload_to_mem else sequence.images
-        self.speeds = load_to_mem(sequence.speeds) if preload_to_mem else sequence.speeds
+        self.speeds = load_to_mem(sequence.speeds) if preload_to_mem else sequence.speeds           
+        self.latitude = load_to_mem(sequence.latitude)  if preload_to_mem else sequence.images
+        self.longitude = load_to_mem(sequence.longitude)  if preload_to_mem else sequence.images
+        self.gyro_x = load_to_mem(sequence.gyro_x)  if preload_to_mem else sequence.images
+        self.gyro_y = load_to_mem(sequence.gyro_y)  if preload_to_mem else sequence.images
+        self.gyro_z = load_to_mem(sequence.gyro_z)  if preload_to_mem else sequence.images
+        self.acc_x = load_to_mem(sequence.acc_x)  if preload_to_mem else sequence.images
+        self.acc_y = load_to_mem(sequence.acc_y)  if preload_to_mem else sequence.images
+        self.acc_z = load_to_mem(sequence.acc_z)  if preload_to_mem else sequence.images
                 
         # Because the change of course is calculated, we need n+1 datapoint to calculate
         # n course changes. This is done by increasing the length of a data moment and
@@ -53,14 +64,13 @@ class Data_Moment():
         n_frames += 1
         
         self.start_index = start_index
-        self.stop_index = self.start_index + (n_frames*frame_gap) 
+        self.stop_index = self.start_index + (n_frames * frame_gap) 
         
         self.frame_gap = frame_gap
         if self.stop_index >= len(self.images):
             self.invalid = True
         else:
             self.invalid = False
-        
         
     def convert_images(self, encoded_images):
         return [cv2.imdecode(np.fromstring(encoded_img, dtype=np.uint8), -1) for encoded_img in encoded_images]
@@ -70,7 +80,7 @@ class Data_Moment():
         
         Experimental method if the label can be loaded faster than a image,label pair
         '''
-        speed_indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
+        speed_indices = np.arange(self.start_index, self.stop_index, self.frame_gap)
 
         # Speeds are one list, twice the size of images, because they are flattened out pairs of values.
         # They have to be reshaped to be pairs. It would be possible to select first the range on where
@@ -82,13 +92,12 @@ class Data_Moment():
         
         return {'actions':actions}
     
-    
     def data_point(self):
         
-        img_indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
-        img_indices = np.delete(img_indices,0)
+        img_indices = np.arange(self.start_index, self.stop_index, self.frame_gap)
+        img_indices = np.delete(img_indices, 0)
         
-        speed_indices = np.arange(self.start_index,self.stop_index,self.frame_gap)
+        speed_indices = np.arange(self.start_index, self.stop_index, self.frame_gap)
 
         # Speeds are one list, twice the size of images, because they are flattened out pairs of values.
         # They have to be reshaped to be pairs. It would be possible to select first the range on where
@@ -100,14 +109,22 @@ class Data_Moment():
         
         images = self.images[:][img_indices]
         
-        return {'imgs':self.convert_images(images),  
-                'actions':actions}
+        return {'imgs':self.convert_images(images),
+                'actions':actions, 'images':images,
+        'speeds':speeds,
+        'latitude':self.latitude,
+        'longitude':self.longitude,
+        'gyro_x':self.gyro_x,
+        'gyro_y':self.gyro_y,
+        'gyro_z':self.gyro_z,
+        'acc_x':self.acc_x,
+        'acc_y':self.acc_y,
+        'acc_z':self.acc_z}
     
 
 class Dataset(data.Dataset):
     
-    
-    def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem = True, keep_memory_free=15, sliding_window=False):
+    def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem=True, keep_memory_free=15, sliding_window=False):
         
         self.run_files = []
         self.n_frames = n_frames
@@ -121,7 +138,7 @@ class Dataset(data.Dataset):
         # the images always in the same way and os.walk does not ensure one fixed order
         for seq_no, sequence in enumerate(db.get_sequence_list()):
             
-            if seq_no %1000 == 0:
+            if seq_no % 1000 == 0:
                 print "Loading seq {}".format(seq_no)            
             
             if debug and seq_no >= seq_limit:
@@ -131,9 +148,9 @@ class Dataset(data.Dataset):
 
             # If we are not going over the data in a sliding window fashion we jump depending on the amount 
             # of frames and the gap size
-            step = 1 if sliding_window else n_frames*frame_gap
+            step = 1 if sliding_window else n_frames * frame_gap
             
-            for i in range(0,image_length,step):
+            for i in range(0, image_length, step):
                 
                 start_index = i
                 if preload_to_mem and get_free_mem() > keep_memory_free:
@@ -149,13 +166,11 @@ class Dataset(data.Dataset):
                     break                
                 
                 self.run_files.append(moment)
-            
-             
         
     def __len__(self):
         return len(self.run_files)
     
-    def isnan(self,x):
+    def isnan(self, x):
         '''
         numpy-free way for torch compatible is nan check
         '''
@@ -178,7 +193,7 @@ class Dataset(data.Dataset):
         
         return camera_data, all_actions, index
     
-    def __getlabel__(self,index):
+    def __getlabel__(self, index):
         data_moment = self.run_files[index]        
         all_actions = torch.from_numpy(data_moment.data_label()['actions'][:]).float().to(get_device())
         
@@ -187,6 +202,7 @@ class Dataset(data.Dataset):
     @property
     def train_labels(self):
         return np.array(range(len(self.run_files)))
+
 
 if __name__ == '__main__':
     pass
@@ -204,5 +220,4 @@ if __name__ == '__main__':
 #         print(vel_course)
 #         cv2.imshow("Test", img)
 #         cv2.waitKey(30)
-
 
