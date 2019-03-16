@@ -58,6 +58,7 @@ class Data_Moment():
         self.acc_y = load_to_mem(sequence.acc_y)  if preload_to_mem else sequence.acc_y
         self.acc_z = load_to_mem(sequence.acc_z)  if preload_to_mem else sequence.acc_z
                 
+        self.file_key = sequence.file_key
         # Because the change of course is calculated, we need n+1 datapoint to calculate
         # n course changes. This is done by increasing the length of a data moment and
         # then throwing the first frame away
@@ -117,6 +118,8 @@ class Data_Moment():
         acc_x = self.acc_x[:][img_indices]
         acc_y = self.acc_y[:][img_indices]
         acc_z = self.acc_z[:][img_indices]
+        
+        file_key = self.file_key
     
         return {'imgs':self.convert_images(images),
                 'actions':actions, 'images':images,
@@ -128,7 +131,9 @@ class Data_Moment():
         'gyro_z':gyro_z,
         'acc_x':acc_x,
         'acc_y':acc_y,
-        'acc_z':acc_z}
+        'acc_z':acc_z,
+        'file_key':file_key        
+        }
     
 
 class Dataset(data.Dataset):

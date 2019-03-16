@@ -6,7 +6,7 @@ import os.path
 
 class DB_item(object):
     
-    def __init__(self, images, speeds,latitude,longitude,gyro_x,gyro_y,gyro_z,acc_x,acc_y,acc_z):
+    def __init__(self, images, speeds,latitude,longitude,gyro_x,gyro_y,gyro_z,acc_x,acc_y,acc_z, file_key):
         self.images = images
         self.speeds = speeds   
         self.latitude = latitude
@@ -17,6 +17,7 @@ class DB_item(object):
         self.acc_x = acc_x
         self.acc_y = acc_y
         self.acc_z = acc_z
+        self.file_key = file_key
         
 
 class DB_manager(object):
@@ -63,7 +64,7 @@ class DB_manager(object):
             acc_y = hdf5_file[file_key]['acc']['y']
             acc_z = hdf5_file[file_key]['acc']['z']
             
-            self.sequences.append(DB_item(images,speeds,latitude,longitude,gyro_x,gyro_y,gyro_z,acc_x,acc_y,acc_z))
+            self.sequences.append(DB_item(images,speeds,latitude,longitude,gyro_x,gyro_y,gyro_z,acc_x,acc_y,acc_z, file_key))
     
     
     def get_sequence_list(self):
