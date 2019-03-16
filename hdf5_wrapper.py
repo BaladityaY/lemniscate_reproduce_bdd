@@ -49,9 +49,16 @@ class DB_manager(object):
             speeds = hdf5_file[file_key]['image']['speeds']
             latitude = hdf5_file[file_key]['latitude']
             longitude = hdf5_file[file_key]['longitude']
-            gyro_x = hdf5_file[file_key]['gyro']['x']
-            gyro_y = hdf5_file[file_key]['gyro']['y']
-            gyro_z = hdf5_file[file_key]['gyro']['z']
+            try:
+                gyro_x = hdf5_file[file_key]['gyro']['x']
+                gyro_y = hdf5_file[file_key]['gyro']['y']
+                gyro_z = hdf5_file[file_key]['gyro']['z']
+            except KeyError:
+                # Some entries do not have a gyro
+                print "Warning: No gyro entry found"
+                gyro_x = None
+                gyro_y = None
+                gyro_z = None
             acc_x = hdf5_file[file_key]['acc']['x']
             acc_y = hdf5_file[file_key]['acc']['y']
             acc_z = hdf5_file[file_key]['acc']['z']

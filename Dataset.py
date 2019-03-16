@@ -49,14 +49,14 @@ class Data_Moment():
         
         self.images = load_to_mem(sequence.images) if preload_to_mem else sequence.images
         self.speeds = load_to_mem(sequence.speeds) if preload_to_mem else sequence.speeds           
-        self.latitude = load_to_mem(sequence.latitude)  if preload_to_mem else sequence.images
-        self.longitude = load_to_mem(sequence.longitude)  if preload_to_mem else sequence.images
-        self.gyro_x = load_to_mem(sequence.gyro_x)  if preload_to_mem else sequence.images
-        self.gyro_y = load_to_mem(sequence.gyro_y)  if preload_to_mem else sequence.images
-        self.gyro_z = load_to_mem(sequence.gyro_z)  if preload_to_mem else sequence.images
-        self.acc_x = load_to_mem(sequence.acc_x)  if preload_to_mem else sequence.images
-        self.acc_y = load_to_mem(sequence.acc_y)  if preload_to_mem else sequence.images
-        self.acc_z = load_to_mem(sequence.acc_z)  if preload_to_mem else sequence.images
+        self.latitude = load_to_mem(sequence.latitude)  if preload_to_mem else sequence.latitude
+        self.longitude = load_to_mem(sequence.longitude)  if preload_to_mem else sequence.longitude
+        self.gyro_x = load_to_mem(sequence.gyro_x)  if preload_to_mem else sequence.gyro_x
+        self.gyro_y = load_to_mem(sequence.gyro_y)  if preload_to_mem else sequence.gyro_y
+        self.gyro_z = load_to_mem(sequence.gyro_z)  if preload_to_mem else sequence.gyro_z
+        self.acc_x = load_to_mem(sequence.acc_x)  if preload_to_mem else sequence.acc_x
+        self.acc_y = load_to_mem(sequence.acc_y)  if preload_to_mem else sequence.acc_y
+        self.acc_z = load_to_mem(sequence.acc_z)  if preload_to_mem else sequence.acc_z
                 
         # Because the change of course is calculated, we need n+1 datapoint to calculate
         # n course changes. This is done by increasing the length of a data moment and
@@ -109,17 +109,26 @@ class Data_Moment():
         
         images = self.images[:][img_indices]
         
+        latitude = self.latitude[:][img_indices]
+        longitude = self.longitude[:][img_indices]
+        gyro_x = self.gyro_x[:][img_indices]
+        gyro_y = self.gyro_y[:][img_indices]
+        gyro_z = self.gyro_z[:][img_indices]
+        acc_x = self.acc_x[:][img_indices]
+        acc_y = self.acc_y[:][img_indices]
+        acc_z = self.acc_z[:][img_indices]
+    
         return {'imgs':self.convert_images(images),
                 'actions':actions, 'images':images,
         'speeds':speeds,
-        'latitude':self.latitude,
-        'longitude':self.longitude,
-        'gyro_x':self.gyro_x,
-        'gyro_y':self.gyro_y,
-        'gyro_z':self.gyro_z,
-        'acc_x':self.acc_x,
-        'acc_y':self.acc_y,
-        'acc_z':self.acc_z}
+        'latitude':latitude,
+        'longitude':longitude,
+        'gyro_x':gyro_x,
+        'gyro_y':gyro_y,
+        'gyro_z':gyro_z,
+        'acc_x':acc_x,
+        'acc_y':acc_y,
+        'acc_z':acc_z}
     
 
 class Dataset(data.Dataset):
@@ -198,6 +207,12 @@ class Dataset(data.Dataset):
         all_actions = torch.from_numpy(data_moment.data_label()['actions'][:]).float().to(get_device())
         
         return all_actions, index
+    
+    def __get_data_point__(self,index):
+        '''
+        Convenience method to access a complete data point when needed
+        '''
+        return self.run_files[index]
     
     @property
     def train_labels(self):
