@@ -224,11 +224,14 @@ with h5py.File('stat_data.h5py', 'a') as out_file:
                 print "Batch time {}".format(time.time() - batch_time)
                 
                 
-                
             val_set_id = batch_idx            
             
             for key in current_reference_value.keys():
-                out_file.create_dataset('val_set_{}/reference/{}'.format(val_set_id, key), data=current_reference_value[key])
+                try:
+                    out_file.create_dataset('val_set_{}/reference/{}'.format(val_set_id, key), data=current_reference_value[key])
+                except Exception as ex:
+                    print ex
+                    print 'We tried the key val_set_{}/reference/{}'.format(val_set_id, key)
             
             for neighbor_id, neighbors_dict in enumerate(neighbour_stat_list):
                 try:
