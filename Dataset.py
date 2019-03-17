@@ -33,8 +33,12 @@ def load_to_mem(hdf_reference):
     This is only done if that reference does not yet exist in the buffer
     '''
     
-    if not hdf_reference in memory_data_buffer: 
-        memory_data_buffer.update({hdf_reference:hdf_reference[:]})
+    if not hdf_reference in memory_data_buffer:
+        try: 
+            memory_data_buffer.update({hdf_reference:hdf_reference[:]})
+        except:
+            # If this is actually none, catch the exception and leave the original reference there
+            memory_data_buffer.update({hdf_reference:hdf_reference})
     # Return a pointer to the data in the dict
     return memory_data_buffer.get(hdf_reference)
 
