@@ -106,7 +106,7 @@ trainFeatures = lemniscate.memory.t()
 
 trainLabels = torch.LongTensor(train_loader.dataset.train_labels).cuda()
 
-stat_data = []
+#stat_data = []
 
 start_time = time.time()
 
@@ -118,12 +118,17 @@ with h5py.File('stat_data.h5py', 'a') as out_file:
         pixel_loss = nn.MSELoss()
     
         reference_values = []
+        file_keys = out_file.keys()
         
         for batch_idx, (input_imgs, targets, indexes) in enumerate(val_loader):
             batch_time = time.time()
-            
+                                    
             if batch_idx % 50 == 0:
                 print "Batch {} from {}".format(batch_idx, len(val_loader))
+                
+            if 'val_set_{}'.format(batch_idx) in file_keys:
+                # Skip already added entries
+                continue
             
             targets = targets.cuda(async=True)
             indexes = indexes.cuda(async=True)
@@ -173,7 +178,7 @@ with h5py.File('stat_data.h5py', 'a') as out_file:
             
             try:
                 current_reference_value = {key:val_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'}
-            except KeyError:
+            except:
                 # gyro is not always there
                 current_reference_value = {key:val_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not 'imgs' and not 'gyro' in key}
             
@@ -185,7 +190,7 @@ with h5py.File('stat_data.h5py', 'a') as out_file:
                 
                 try:
                     retrieval_value = {key:train_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'}
-                except KeyError:
+                except:
                     retrieval_value = {key:train_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'  and not 'gyro' in key}
                 
                 retrieval_value.update({'action_label':train_loader.dataset.__getlabel__(ret_ind)[0]})
@@ -211,7 +216,7 @@ with h5py.File('stat_data.h5py', 'a') as out_file:
             
             # mse_pixel_loss = pixel_loss(Variable(avg_img), Variable(query_img))
             
-            stat_data.append(neighbour_stat_list)
+            #stat_data.append(neighbour_stat_list)
             
             # The following can be used to write directly on images
             # show_img = write_text(show_img,mse_pixel_loss.cpu().numpy())
