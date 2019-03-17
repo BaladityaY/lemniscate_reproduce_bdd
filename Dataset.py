@@ -126,7 +126,7 @@ class Data_Moment():
         file_key = self.file_key
     
         return {'imgs':self.convert_images(images),
-                'actions':actions, 'images':images,
+                'actions':actions, #'images':images,
         'speeds':speeds,
         'latitude':latitude,
         'longitude':longitude,

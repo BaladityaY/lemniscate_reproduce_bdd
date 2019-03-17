@@ -1,18 +1,11 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import torch
 import torch.nn as nn
 from collections import defaultdict
 import pandas as pd
 import h5py
 from sklearn.metrics import log_loss
-
+from collections import OrderedDict
 import cv2
-
 import models
 import os
 from Dataset import Dataset
@@ -30,14 +23,10 @@ from test import NN, kNN
 from scipy import misc
 
 
-# In[2]:
-
 
 def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,requires_grad=False), size)).data
 
-
-# In[3]:
 
 
 low_dim = 128
@@ -46,34 +35,16 @@ model = models.__dict__[checkpoint['arch']](n_frames=6,low_dim=low_dim)
 model = model.cuda()
 model = torch.nn.DataParallel(model)
 
-
-# In[4]:
-
-
 state_dict = checkpoint['state_dict']
 
-
-# In[5]:
-
-
-from collections import OrderedDict
-
-print('epoch: {}'.format(checkpoint['epoch']))
+print('Loading epoch: {}'.format(checkpoint['epoch']))
 
 lemniscate = checkpoint['lemniscate']
 
 model.load_state_dict(state_dict)           
 
-
-# In[6]:
-
-
 training_file = "/home/sascha/for_bdd_training/full_train_set_v2.hdf5"
 validation_file = "/home/sascha/for_bdd_training/full_val_set_v2.hdf5"
-
-
-# In[7]:
-
 
 # Keep 25% of the memory free for writing data into the dictionary.
 keep_memory_free=25
@@ -81,10 +52,6 @@ preload_to_mem=True
 # In this order the whole val dataset should be loaded into memory and a part of the training set
 val_dataset = Dataset(validation_file,preload_to_mem=preload_to_mem,keep_memory_free=keep_memory_free)
 train_dataset = Dataset(training_file,preload_to_mem=preload_to_mem,keep_memory_free=keep_memory_free)
-
-
-# In[8]:
-
 
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=1, shuffle=False, 
@@ -94,10 +61,6 @@ val_loader = torch.utils.data.DataLoader(
     val_dataset, batch_size=1, shuffle=False,
     num_workers=0)
 
-
-# In[9]:
-
-
 ndata = train_dataset.__len__()
 nce_k = 4096
 nce_t = .07
@@ -106,10 +69,6 @@ iter_size = 1
 
 n_frames = 6
 gpu=0
-
-
-# In[10]:
-
 
 font                   = cv2.FONT_HERSHEY_SIMPLEX
 bottomLeftCornerOfText = (10,50)
@@ -128,10 +87,6 @@ def write_text(img,text):
         lineType)
 
     return img_copy
-
-
-# In[12]:
-
 
 model.eval()
 debug = True
@@ -178,7 +133,7 @@ with torch.no_grad():
 
         input_imgs = input_imgs[:,0:int((n_frames/2)*3),:,:] #extract only img 1 through 3
                 
-        targets_orig = targets.clone()
+        targets_orig = targets.clone().cpu().numpy()
         targets = targets[:,0:int(n_frames/2)] #extract steers first 3 targets
         
         #targets = torch.from_numpy(np.array([[[0., 0., 0., 1., 0., 0.],
@@ -201,7 +156,6 @@ with torch.no_grad():
         a = 1 / (max_val - min_val)
         b = 1 - a * max_val
         yd_mapped = yd.clone().mul(a).add(b)
-
         
         image_steering_labels = defaultdict()
         
@@ -215,7 +169,7 @@ with torch.no_grad():
         #data_keys = ['speeds','latitude','longitude','gyro_x','gyro_y','gyro_z','acc_x','acc_y','acc_z','file_key']
         data_keys = val_loader.dataset.__get_data_point__(indexes[0]).data_point().keys()
         
-        current_reference_value = {key:val_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys}
+        current_reference_value = {key:val_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'}
         
         reference_values.append(current_reference_value)
         
@@ -223,7 +177,7 @@ with torch.no_grad():
 
             ret_ind = int(retrieval[0, top_id])           
             
-            retrieval_value = {key:train_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys}
+            retrieval_value = {key:train_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'}
             retrieval_value.update({'action_label':train_loader.dataset.__getlabel__(ret_ind)[0]})
             retrieval_value.update({'action_target':targets_orig[0]})
             
