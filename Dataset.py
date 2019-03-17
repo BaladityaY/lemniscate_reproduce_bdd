@@ -116,9 +116,15 @@ class Data_Moment():
         
         latitude = self.latitude[:][img_indices]
         longitude = self.longitude[:][img_indices]
-        gyro_x = self.gyro_x[:][img_indices]
-        gyro_y = self.gyro_y[:][img_indices]
-        gyro_z = self.gyro_z[:][img_indices]
+        try:
+            gyro_x = self.gyro_x[:][img_indices]
+            gyro_y = self.gyro_y[:][img_indices]
+            gyro_z = self.gyro_z[:][img_indices]
+        except:
+            # Some source files have no gyro
+            gyro_x = None
+            gyro_y = None
+            gyro_z = None            
         acc_x = self.acc_x[:][img_indices]
         acc_y = self.acc_y[:][img_indices]
         acc_z = self.acc_z[:][img_indices]

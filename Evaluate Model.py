@@ -16,22 +16,20 @@ from util_moduls.Utils import get_device
 
 from lib.NCEAverage import NCEAverage
 from lib.NCECriterion import NCECriterion
-#get_ipython().run_line_magic('matplotlib', 'inline')
+# get_ipython().run_line_magic('matplotlib', 'inline')
 import matplotlib.pyplot as plt
 import time
 from test import NN, kNN
 from scipy import misc
 
 
-
 def resize2d(img, size):
-    return (torch.nn.functional.adaptive_avg_pool2d(Variable(img,requires_grad=False), size)).data
-
+    return (torch.nn.functional.adaptive_avg_pool2d(Variable(img, requires_grad=False), size)).data
 
 
 low_dim = 128
 checkpoint = torch.load('model_best.pth.tar')
-model = models.__dict__[checkpoint['arch']](n_frames=6,low_dim=low_dim)
+model = models.__dict__[checkpoint['arch']](n_frames=6, low_dim=low_dim)
 model = model.cuda()
 model = torch.nn.DataParallel(model)
 
@@ -47,14 +45,15 @@ training_file = "/home/sascha/for_bdd_training/full_train_set_v2.hdf5"
 validation_file = "/home/sascha/for_bdd_training/full_val_set_v2.hdf5"
 
 # Keep 25% of the memory free for writing data into the dictionary.
-keep_memory_free=25
-preload_to_mem=True
+keep_memory_free = 25
+preload_to_mem = True
 # In this order the whole val dataset should be loaded into memory and a part of the training set
-val_dataset = Dataset(validation_file,preload_to_mem=preload_to_mem,keep_memory_free=keep_memory_free)
-train_dataset = Dataset(training_file,preload_to_mem=preload_to_mem,keep_memory_free=keep_memory_free)
+val_dataset = Dataset(validation_file, preload_to_mem=preload_to_mem, keep_memory_free=keep_memory_free)
+train_dataset = Dataset(training_file, preload_to_mem=preload_to_mem, keep_memory_free=keep_memory_free)
 
+# In this hacky code the batch size has to be always 1 !!!!!!!!!!!!!!!!!!!
 train_loader = torch.utils.data.DataLoader(
-    train_dataset, batch_size=1, shuffle=False, 
+    train_dataset, batch_size=1, shuffle=False,
     num_workers=0)
 
 val_loader = torch.utils.data.DataLoader(
@@ -68,30 +67,32 @@ nce_m = .5
 iter_size = 1
 
 n_frames = 6
-gpu=0
+gpu = 0
 
-font                   = cv2.FONT_HERSHEY_SIMPLEX
-bottomLeftCornerOfText = (10,50)
-fontScale              = 1
-fontColor              = (0,0,255)
-lineType               = 2
+font = cv2.FONT_HERSHEY_SIMPLEX
+bottomLeftCornerOfText = (10, 50)
+fontScale = 1
+fontColor = (0, 0, 255)
+lineType = 2
 
-def write_text(img,text):
+
+def write_text(img, text):
 
     img_copy = img.copy()
-    cv2.putText(img_copy,str(text), 
-        bottomLeftCornerOfText, 
-        font, 
+    cv2.putText(img_copy, str(text),
+        bottomLeftCornerOfText,
+        font,
         fontScale,
         fontColor,
         lineType)
 
     return img_copy
 
+
 model.eval()
 debug = True
 
-topk = 5 # It became evident that the top 5 NNs are sufficient for the best results
+topk = 5  # It became evident that the top 5 NNs are sufficient for the best results
 steer_eval = {}
 
 correct = 0.
@@ -109,143 +110,159 @@ stat_data = []
 
 start_time = time.time()
 
-with torch.no_grad():
-
-    criterion = nn.BCELoss(reduce=False).cuda()
-    bce = lambda t1, t2: criterion(t1, t2).mean().flatten()
-    pixel_loss = nn.MSELoss()
-
-    reference_values = []
+with h5py.File('stat_data.h5py', 'a') as out_file:
+    with torch.no_grad():
     
-    for batch_idx, (input_imgs, targets, indexes) in enumerate(val_loader):
-        batch_time = time.time()
+        criterion = nn.BCELoss(reduce=False).cuda()
+        bce = lambda t1, t2: criterion(t1, t2).mean().flatten()
+        pixel_loss = nn.MSELoss()
+    
+        reference_values = []
         
-        if batch_idx % 50 == 0:
-            print "Batch {} from {}".format(batch_idx, len(val_loader))
-        
-        targets = targets.cuda(async=True)
-        indexes = indexes.cuda(async=True)
-        input_imgs = input_imgs.cuda(async=True)
-        
-        batchSize = input_imgs.size(0)
-        
-        og_targets = targets.clone()
-
-        input_imgs = input_imgs[:,0:int((n_frames/2)*3),:,:] #extract only img 1 through 3
+        for batch_idx, (input_imgs, targets, indexes) in enumerate(val_loader):
+            batch_time = time.time()
+            
+            if batch_idx % 50 == 0:
+                print "Batch {} from {}".format(batch_idx, len(val_loader))
+            
+            targets = targets.cuda(async=True)
+            indexes = indexes.cuda(async=True)
+            input_imgs = input_imgs.cuda(async=True)
+            
+            batchSize = input_imgs.size(0)
+            
+            og_targets = targets.clone()
+    
+            input_imgs = input_imgs[:, 0:int((n_frames / 2) * 3), :, :]  # extract only img 1 through 3
+                    
+            targets_orig = targets.clone().cpu().numpy()
+            targets = targets[:, 0:int(n_frames / 2)]  # extract steers first 3 targets
+            
+            # targets = torch.from_numpy(np.array([[[0., 0., 0., 1., 0., 0.],
+            # [0., 0., 0., 1., 0., 0.],
+            # [0., 0., 0., 1., 0., 0.]]])).float().cuda()
+    
+            features = model(input_imgs, targets)
+    
+            dist = torch.mm(features, trainFeatures)
+    
+            yd, yi = dist.topk(topk, dim=1, largest=True, sorted=True)
+            candidates = trainLabels.view(1, -1).expand(batchSize, -1)
+            retrieval = torch.gather(candidates, 1, yi)
+    
+            retrieval = retrieval.narrow(1, 0, topk).clone()
+            yd = yd.narrow(1, 0, topk)
+            
+            min_val = yd.min()
+            max_val = yd.max()
+            a = 1 / (max_val - min_val)
+            b = 1 - a * max_val
+            yd_mapped = yd.clone().mul(a).add(b)
+            
+            image_steering_labels = defaultdict()
+            
+            indexes = np.array(indexes.cpu())
+            
+            neighbour_stat_list = []
+            img_retrievals = []
+            
+            show_images = False
+            
+            # data_keys = ['speeds','latitude','longitude','gyro_x','gyro_y','gyro_z','acc_x','acc_y','acc_z','file_key']
+            data_keys = val_loader.dataset.__get_data_point__(indexes[0]).data_point().keys()
+            
+            try:
+                current_reference_value = {key:val_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'}
+            except KeyError:
+                # gyro is not always there
+                current_reference_value = {key:val_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not 'imgs' and not 'gyro' in key}
+            
+            reference_values.append(current_reference_value)
+            
+            for top_id in range(topk):
+    
+                ret_ind = int(retrieval[0, top_id])           
                 
-        targets_orig = targets.clone().cpu().numpy()
-        targets = targets[:,0:int(n_frames/2)] #extract steers first 3 targets
-        
-        #targets = torch.from_numpy(np.array([[[0., 0., 0., 1., 0., 0.],
-        # [0., 0., 0., 1., 0., 0.],
-        # [0., 0., 0., 1., 0., 0.]]])).float().cuda()
-
-        features = model(input_imgs, targets)
-
-        dist = torch.mm(features, trainFeatures)
-
-        yd, yi = dist.topk(topk, dim=1, largest=True, sorted=True)
-        candidates = trainLabels.view(1,-1).expand(batchSize, -1)
-        retrieval = torch.gather(candidates, 1, yi)
-
-        retrieval = retrieval.narrow(1, 0, topk).clone()
-        yd = yd.narrow(1, 0, topk)
-        
-        min_val = yd.min()
-        max_val = yd.max()
-        a = 1 / (max_val - min_val)
-        b = 1 - a * max_val
-        yd_mapped = yd.clone().mul(a).add(b)
-        
-        image_steering_labels = defaultdict()
-        
-        indexes = np.array(indexes.cpu())
-        
-        neighbour_stat_list = []
-        img_retrievals = []
-        
-        show_images = False
-        
-        #data_keys = ['speeds','latitude','longitude','gyro_x','gyro_y','gyro_z','acc_x','acc_y','acc_z','file_key']
-        data_keys = val_loader.dataset.__get_data_point__(indexes[0]).data_point().keys()
-        
-        current_reference_value = {key:val_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'}
-        
-        reference_values.append(current_reference_value)
-        
-        for top_id in range(topk):
-
-            ret_ind = int(retrieval[0, top_id])           
+                try:
+                    retrieval_value = {key:train_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'}
+                except KeyError:
+                    retrieval_value = {key:train_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'  and not 'gyro' in key}
+                
+                retrieval_value.update({'action_label':train_loader.dataset.__getlabel__(ret_ind)[0]})
+                retrieval_value.update({'action_target':targets_orig[0]})
+                
+                # action_label_past = train_loader.dataset.__getlabel__(ret_ind)[0][0:3]
+                # targets_past = targets_orig[0][0:3]
+                # action_correlations.append(bce(action_label_past,targets_past).cpu().numpy())
+                
+                # reference_retrieval_difference = np.sum(np.linalg.norm((retrieval_value,current_reference_value), axis = 0))
+                neighbour_stat_list.append(retrieval_value)
+                
+                if show_images: img_retrievals.append(train_loader.dataset.__getitem__(ret_ind)[0])
             
-            retrieval_value = {key:train_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'}
-            retrieval_value.update({'action_label':train_loader.dataset.__getlabel__(ret_ind)[0]})
-            retrieval_value.update({'action_target':targets_orig[0]})
+            # text_on_img = train_loader.dataset.__getlabel__(retrieval[0, 0])[0]
+            if show_images: ret_imgs_cv2_comp = [(img_retrievals[i][6:9] + 0.5).transpose(1, 2).transpose(0, 2) for i in range(topk)]
             
-            #action_label_past = train_loader.dataset.__getlabel__(ret_ind)[0][0:3]
-            #targets_past = targets_orig[0][0:3]
-            #action_correlations.append(bce(action_label_past,targets_past).cpu().numpy())
+            # avg_img = torch.stack(ret_imgs_cv2_comp).mean(0)        
+            if show_images: query_img = (input_imgs[0, 0:3, :, :] + 0.5).transpose(1, 2).transpose(0, 2)        
             
-            #reference_retrieval_difference = np.sum(np.linalg.norm((retrieval_value,current_reference_value), axis = 0))
-            neighbour_stat_list.append(retrieval_value)
+            if show_images: show_img = torch.cat(ret_imgs_cv2_comp, 1)  # .cpu().numpy()
+            if show_images: show_img = torch.cat((query_img, show_img), 1).cpu().numpy()
             
-            if show_images: img_retrievals.append(train_loader.dataset.__getitem__(ret_ind)[0])
-        
-        
-        #text_on_img = train_loader.dataset.__getlabel__(retrieval[0, 0])[0]
-        if show_images: ret_imgs_cv2_comp = [(img_retrievals[i][6:9]+0.5).transpose(1,2).transpose(0,2) for i in range(topk)]
-        
-        #avg_img = torch.stack(ret_imgs_cv2_comp).mean(0)        
-        if show_images: query_img = (input_imgs[0,0:3,:,:]+0.5).transpose(1,2).transpose(0,2)        
-        
-        if show_images: show_img = torch.cat(ret_imgs_cv2_comp,1)#.cpu().numpy()
-        if show_images: show_img = torch.cat((query_img,show_img),1).cpu().numpy()
-        
-        #mse_pixel_loss = pixel_loss(Variable(avg_img), Variable(query_img))
-        
-        stat_data.append(neighbour_stat_list)
-        
-        # The following can be used to write directly on images
-        #show_img = write_text(show_img,mse_pixel_loss.cpu().numpy())
-        if show_images: cv2.imshow('test',show_img)
-        if show_images: cv2.waitKey(30)
-        #print action_correlations
-        
-        # The next lines can be used to quickly debug code
-        if batch_idx%10 == 0:
-            print "Batch time {}".format(time.time() - batch_time)
+            # mse_pixel_loss = pixel_loss(Variable(avg_img), Variable(query_img))
             
-print "End time is {}".format(time.time() - start_time)
-    
-if show_images: cv2.destroyAllWindows()
-
+            stat_data.append(neighbour_stat_list)
+            
+            # The following can be used to write directly on images
+            # show_img = write_text(show_img,mse_pixel_loss.cpu().numpy())
+            if show_images: cv2.imshow('test', show_img)
+            if show_images: cv2.waitKey(30)
+            # print action_correlations
+            
+            # The next lines can be used to quickly debug code
+            if batch_idx % 10 == 0:
+                print "Batch time {}".format(time.time() - batch_time)
+                
+                
+                
+            val_set_id = batch_idx            
+            
+            for key in current_reference_value.keys():
+                out_file.create_dataset('val_set_{}/reference/{}'.format(val_set_id, key), data=current_reference_value[key])
+            
+            for neighbor_id, neighbors_dict in enumerate(neighbour_stat_list):
+                try:
+                    for key in neighbors_dict.keys():
+                        out_file.create_dataset('val_set_{}/neighbor_{}/{}'.format(val_set_id, neighbor_id, key), data=neighbors_dict[key])
+                except Exception as e:
+                    print neighbors_dict
+                    print e
+                
+    print "End time is {}".format(time.time() - start_time)
+        
+    if show_images: cv2.destroyAllWindows()
 
 # In[13]:
 
-
-with h5py.File('stat_data.h5py','w') as out_file:
-    for val_set_id, list_entry in enumerate(stat_data):
-        
-        reference_value_dict = reference_values[val_set_id]
-        for key in reference_value_dict.keys():
-            out_file.create_dataset('val_set_{}/reference/{}'.format(val_set_id,key),data=reference_value_dict[key])
-        
-        for neighbor_id, neighbors_dict in enumerate(list_entry):
-            try:
-                for key in neighbors_dict.keys():
-                    out_file.create_dataset('val_set_{}/neighbor_{}/{}'.format(val_set_id,neighbor_id,key),data=neighbors_dict[key])
-            except Exception as e:
-                print neighbors_dict
-                print e
+# 
+#     for val_set_id, list_entry in enumerate(stat_data):
+#         
+#         reference_value_dict = reference_values[val_set_id]
+#         for key in reference_value_dict.keys():
+#             out_file.create_dataset('val_set_{}/reference/{}'.format(val_set_id, key), data=reference_value_dict[key])
+#         
+#         for neighbor_id, neighbors_dict in enumerate(list_entry):
+#             try:
+#                 for key in neighbors_dict.keys():
+#                     out_file.create_dataset('val_set_{}/neighbor_{}/{}'.format(val_set_id, neighbor_id, key), data=neighbors_dict[key])
+#             except Exception as e:
+#                 print neighbors_dict
+#                 print e
             
-        #break
+        # break
 print "Finished creating stat data file"
 
-
 # In[ ]:
-
-
-
-
 
 # test_file = h5py.File('stat_data.h5py','r')
 
@@ -259,34 +276,18 @@ print "Finished creating stat data file"
 
 # In[ ]:
 
-
-
-
-
 # In[ ]:
 
-
-
-
-
 # In[ ]:
-
-
-
-
 
 # In[35]:
 
-
-#action_correlations = [np.average(neighbours) for neighbours in stat_data['action_correlations']]
-
+# action_correlations = [np.average(neighbours) for neighbours in stat_data['action_correlations']]
 
 # In[37]:
 
-
 plt.plot(action_correlations)
 plt.show()
-
 
 # stat_data['action_correlations']
 
