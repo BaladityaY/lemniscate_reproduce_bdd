@@ -167,7 +167,7 @@ with h5py.File('stat_data.h5py', 'a') as out_file:
                     exit()
                                     
             if batch_idx % 50 == 0:
-                print "Batch {} from {}".format(batch_idx, len(val_loader))
+                print "Batch {} from {}, upper lim is {}".format(batch_idx, len(val_loader),args.index_up)
                 if get_free_mem() < 1:
                     print "ERROR: OUT OF MEMORY"
                     exit()
