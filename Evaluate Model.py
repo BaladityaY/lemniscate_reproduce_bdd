@@ -11,9 +11,9 @@ import os
 from Dataset import Dataset
 from torch.autograd.variable import Variable
 import numpy as np
-
+import sys
 from util_moduls.Utils import get_device
-
+import argparse
 from lib.NCEAverage import NCEAverage
 from lib.NCECriterion import NCECriterion
 # get_ipython().run_line_magic('matplotlib', 'inline')
@@ -23,8 +23,33 @@ from test import NN, kNN
 from scipy import misc
 
 
+
+parser = argparse.ArgumentParser(description='Evaluate a trained network')
+parser.add_argument('--free_mem_percent', dest='mem_free',default=10, type=int,
+                    help='Memory to be kept free when loading data into memory.')
+parser.add_argument('--preload_data', dest='preload', action='store_true',
+                    help='Store memory in data before training')
+parser.add_argument('--lower-index', dest='index_low', type=int,
+                    help='Lower index of entries in the data loader to be parsed')
+parser.add_argument('--upper-index', dest='index_up', type=int,
+                    help='Upper index of entries in the data loader to be parsed')
+parser.add_argument('--only-show-size', dest='show_val_size', action='store_true',
+                    help='Show only the size of the val loader')
+
+
+args = parser.parse_args()
+
+
+
+def get_free_mem():
+    meminfo = dict((i.split()[0].rstrip(':'), int(i.split()[1])) for i in open('/proc/meminfo').readlines())
+    mem_available = float(meminfo['MemAvailable'])
+    mem_total = float(meminfo['MemTotal'])
+    return (mem_available / mem_total) * 100.
+
 def resize2d(img, size):
     return (torch.nn.functional.adaptive_avg_pool2d(Variable(img, requires_grad=False), size)).data
+
 
 
 low_dim = 128
@@ -45,10 +70,22 @@ training_file = "/home/sascha/for_bdd_training/full_train_set_v2.hdf5"
 validation_file = "/home/sascha/for_bdd_training/full_val_set_v2.hdf5"
 
 # Keep 25% of the memory free for writing data into the dictionary.
-keep_memory_free = 25
-preload_to_mem = True
+
+keep_memory_free = args.mem_free
+preload_to_mem = args.preload
+
+
 # In this order the whole val dataset should be loaded into memory and a part of the training set
 val_dataset = Dataset(validation_file, preload_to_mem=preload_to_mem, keep_memory_free=keep_memory_free)
+
+val_loader = torch.utils.data.DataLoader(
+    val_dataset, batch_size=1, shuffle=False,
+    num_workers=0)
+
+if args.show_val_size:
+    print "The val loader has {} entries".format(len(val_loader))
+    exit()
+
 train_dataset = Dataset(training_file, preload_to_mem=preload_to_mem, keep_memory_free=keep_memory_free)
 
 # In this hacky code the batch size has to be always 1 !!!!!!!!!!!!!!!!!!!
@@ -56,9 +93,6 @@ train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=1, shuffle=False,
     num_workers=0)
 
-val_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=1, shuffle=False,
-    num_workers=0)
 
 ndata = train_dataset.__len__()
 nce_k = 4096
@@ -93,7 +127,7 @@ model.eval()
 debug = True
 
 topk = 5  # It became evident that the top 5 NNs are sufficient for the best results
-steer_eval = {}
+
 
 correct = 0.
 correct_past = 0.
@@ -117,17 +151,30 @@ with h5py.File('stat_data.h5py', 'a') as out_file:
         bce = lambda t1, t2: criterion(t1, t2).mean().flatten()
         pixel_loss = nn.MSELoss()
     
-        reference_values = []
-        file_keys = out_file.keys()
         
-        for batch_idx, (input_imgs, targets, indexes) in enumerate(val_loader):
+        file_keys = out_file.keys()
+        if args.index_low:
+            val_enumerator = enumerate(val_loader,args.index_low)
+        else:
+            val_enumerator = enumerate(val_loader)
+                
+        for batch_idx, (input_imgs, targets, indexes) in val_enumerator:
             batch_time = time.time()
+            
+            if args.index_up:
+                if batch_idx >= args.index_up:
+                    print "Reached upper limit {}".format(batch_idx)
+                    exit()
                                     
             if batch_idx % 50 == 0:
                 print "Batch {} from {}".format(batch_idx, len(val_loader))
+                if get_free_mem() < 1:
+                    print "ERROR: OUT OF MEMORY"
+                    exit()
                 
             if 'val_set_{}'.format(batch_idx) in file_keys:
                 # Skip already added entries
+                print "Skipping {}".format(batch_idx)
                 continue
             
             targets = targets.cuda(async=True)
@@ -182,16 +229,16 @@ with h5py.File('stat_data.h5py', 'a') as out_file:
                 # gyro is not always there
                 current_reference_value = {key:val_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not 'imgs' and not 'gyro' in key}
             
-            reference_values.append(current_reference_value)
+            
             
             for top_id in range(topk):
     
                 ret_ind = int(retrieval[0, top_id])           
                 
                 try:
-                    retrieval_value = {key:train_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'}
+                    retrieval_value = {key:train_loader.dataset.__get_data_point__(ret_ind).data_point()[key][:] for key in data_keys if key is not'imgs'}
                 except:
-                    retrieval_value = {key:train_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not'imgs'  and not 'gyro' in key}
+                    retrieval_value = {key:train_loader.dataset.__get_data_point__(ret_ind).data_point()[key][:] for key in data_keys if key is not'imgs'  and not 'gyro' in key}
                 
                 retrieval_value.update({'action_label':train_loader.dataset.__getlabel__(ret_ind)[0]})
                 retrieval_value.update({'action_target':targets_orig[0]})
@@ -294,8 +341,8 @@ print "Finished creating stat data file"
 
 # In[37]:
 
-plt.plot(action_correlations)
-plt.show()
+#plt.plot(action_correlations)
+#plt.show()
 
 # stat_data['action_correlations']
 

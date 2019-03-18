@@ -148,7 +148,7 @@ class Data_Moment():
 
 class Dataset(data.Dataset):
     
-    def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem=True, keep_memory_free=15, sliding_window=False):
+    def __init__(self, data_file_path, n_frames=6, frame_gap=4, preload_to_mem=True, keep_memory_free=10, sliding_window=False):
         
         self.run_files = []
         self.n_frames = n_frames
