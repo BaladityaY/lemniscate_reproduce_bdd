@@ -147,9 +147,9 @@ start_time = time.time()
 with h5py.File('stat_data.h5py', 'a') as out_file:
     with torch.no_grad():
     
-        criterion = nn.BCELoss(reduce=False).cuda()
-        bce = lambda t1, t2: criterion(t1, t2).mean().flatten()
-        pixel_loss = nn.MSELoss()
+        #criterion = nn.BCELoss(reduce=False).cuda()
+        #bce = lambda t1, t2: criterion(t1, t2).mean().flatten()
+        #pixel_loss = nn.MSELoss()
     
         
         file_keys = out_file.keys()

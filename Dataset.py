@@ -51,16 +51,28 @@ class Data_Moment():
         because that will slow down loading and put a lot of data in memory
         '''        
         
+        #self.images = load_to_mem(sequence.images) if preload_to_mem else sequence.images
+        #self.speeds = load_to_mem(sequence.speeds) if preload_to_mem else sequence.speeds           
+        #self.latitude = load_to_mem(sequence.latitude)  if preload_to_mem else sequence.latitude
+        #self.longitude = load_to_mem(sequence.longitude)  if preload_to_mem else sequence.longitude
+        #self.gyro_x = load_to_mem(sequence.gyro_x)  if preload_to_mem else sequence.gyro_x
+        #self.gyro_y = load_to_mem(sequence.gyro_y)  if preload_to_mem else sequence.gyro_y
+        #self.gyro_z = load_to_mem(sequence.gyro_z)  if preload_to_mem else sequence.gyro_z
+        #self.acc_x = load_to_mem(sequence.acc_x)  if preload_to_mem else sequence.acc_x
+        #self.acc_y = load_to_mem(sequence.acc_y)  if preload_to_mem else sequence.acc_y
+        #self.acc_z = load_to_mem(sequence.acc_z)  if preload_to_mem else sequence.acc_z
+        
+        # Test debugging by loading only the images into mem
         self.images = load_to_mem(sequence.images) if preload_to_mem else sequence.images
-        self.speeds = load_to_mem(sequence.speeds) if preload_to_mem else sequence.speeds           
-        self.latitude = load_to_mem(sequence.latitude)  if preload_to_mem else sequence.latitude
-        self.longitude = load_to_mem(sequence.longitude)  if preload_to_mem else sequence.longitude
-        self.gyro_x = load_to_mem(sequence.gyro_x)  if preload_to_mem else sequence.gyro_x
-        self.gyro_y = load_to_mem(sequence.gyro_y)  if preload_to_mem else sequence.gyro_y
-        self.gyro_z = load_to_mem(sequence.gyro_z)  if preload_to_mem else sequence.gyro_z
-        self.acc_x = load_to_mem(sequence.acc_x)  if preload_to_mem else sequence.acc_x
-        self.acc_y = load_to_mem(sequence.acc_y)  if preload_to_mem else sequence.acc_y
-        self.acc_z = load_to_mem(sequence.acc_z)  if preload_to_mem else sequence.acc_z
+        self.speeds = sequence.speeds           
+        self.latitude = sequence.latitude
+        self.longitude =  sequence.longitude
+        self.gyro_x = sequence.gyro_x
+        self.gyro_y = sequence.gyro_y
+        self.gyro_z = sequence.gyro_z
+        self.acc_x = sequence.acc_x
+        self.acc_y = sequence.acc_y
+        self.acc_z = sequence.acc_z
                 
         self.file_key = sequence.file_key
         # Because the change of course is calculated, we need n+1 datapoint to calculate
