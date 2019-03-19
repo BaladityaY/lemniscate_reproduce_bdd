@@ -66,8 +66,8 @@ lemniscate = checkpoint['lemniscate']
 
 model.load_state_dict(state_dict)           
 
-training_file = "/home/sascha/for_bdd_training/full_train_set_v2.hdf5"
-validation_file = "/home/sascha/for_bdd_training/full_val_set_v2.hdf5"
+training_file = "/data/dataset/full_train_set_v3.hdf5"
+validation_file = "/data/dataset/full_train_set_v3.hdf5"
 
 # Keep 25% of the memory free for writing data into the dictionary.
 
