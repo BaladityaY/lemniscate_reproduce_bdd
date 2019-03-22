@@ -144,7 +144,7 @@ trainLabels = torch.LongTensor(train_loader.dataset.train_labels).cuda()
 
 start_time = time.time()
 
-with h5py.File('stat_data.h5py', 'a') as out_file:
+with h5py.File('image_retrievals.h5py', 'w') as out_file:
     with torch.no_grad():
     
         #criterion = nn.BCELoss(reduce=False).cuda()
