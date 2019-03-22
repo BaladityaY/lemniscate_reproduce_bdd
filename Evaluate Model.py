@@ -126,7 +126,7 @@ def write_text(img, text):
 model.eval()
 debug = True
 
-topk = 5  # It became evident that the top 5 NNs are sufficient for the best results
+topk = 9  # It became evident that the top 5 NNs are sufficient for the best results
 
 
 correct = 0.
@@ -144,20 +144,106 @@ trainLabels = torch.LongTensor(train_loader.dataset.train_labels).cuda()
 
 start_time = time.time()
 
+def draw_blue_rectangle(img, x_start,y_start,side_length,gt_straight,gt_stop,gt_left,gt_right):
+    # Left
+    b_side_length = side_length#15
+    b_start_left = x_start#20
+    b_start_top = y_start#20
+    
+    pt1 = (b_start_left,b_start_top)
+    pt2 = (b_start_left+b_side_length,b_start_top+b_side_length)
+    
+    cv2.rectangle(img,pt1,pt2,(np.min((255,180+int(255*gt_left))),
+                               int(255*gt_left),int(255*gt_left)),-1)
+    
+    # Center
+    pt3 = pt2
+    pt4 = (b_start_left+b_side_length*2,(b_start_top))
+    
+    cv2.rectangle(img,pt3,pt4,(np.min((255,180+int(255*gt_stop))),int(255*gt_stop),int(255*gt_stop)),-1)
+    
+    # Right
+    pt5 = pt4
+    pt6 = (b_start_left+b_side_length*3,(b_start_top+b_side_length))
+    
+    cv2.rectangle(img,pt5,pt6,(np.min((255,180+int(255*gt_right))),int(255*gt_right),int(255*gt_right)),-1)
+    
+    # Top
+    
+    pt7 = (b_start_left+b_side_length,b_start_top-b_side_length)
+    pt8 = (b_start_left+b_side_length*2,b_start_top)
+        
+    cv2.rectangle(img,pt7,pt8,(np.min((255,180+int(255*gt_straight))),int(255*gt_straight),int(255*gt_straight)),-1)
+    
+def draw_green_rectangle(img, x_start,y_start,side_length,gt_straight,gt_stop,gt_left,gt_right):
+    # Left
+    b_side_length = side_length#15
+    b_start_left = x_start#20
+    b_start_top = y_start#20
+    
+    pt1 = (b_start_left,b_start_top)
+    pt2 = (b_start_left+b_side_length,b_start_top+b_side_length)
+    
+    cv2.rectangle(img,pt1,pt2,(int(255*gt_left),np.min((255,180+int(255*gt_left))),
+                               int(255*gt_left)),-1)
+    
+    # Center
+    pt3 = pt2
+    pt4 = (b_start_left+b_side_length*2,(b_start_top))
+    
+    cv2.rectangle(img,pt3,pt4,(int(255*gt_stop),np.min((255,180+int(255*gt_stop))),int(255*gt_stop)),-1)
+    
+    # Right
+    pt5 = pt4
+    pt6 = (b_start_left+b_side_length*3,(b_start_top+b_side_length))
+    
+    cv2.rectangle(img,pt5,pt6,(int(255*gt_right),np.min((255,180+int(255*gt_right))),int(255*gt_right)),-1)
+    
+    # Top
+    
+    pt7 = (b_start_left+b_side_length,b_start_top-b_side_length)
+    pt8 = (b_start_left+b_side_length*2,b_start_top)
+        
+    cv2.rectangle(img,pt7,pt8,(int(255*gt_straight),np.min((255,180+int(255*gt_straight))),int(255*gt_straight)),-1)
+
+def add_indicator(img, gt_actions, nn_actions):
+    
+    gt_t_3 = gt_actions
+    
+    gt_straight = gt_t_3[0]
+    gt_stop = gt_t_3[1]
+    gt_left = gt_t_3[2]
+    gt_right = gt_t_3[3]
+    
+    if nn_actions is not None:
+        
+        nn_t_3 = nn_actions
+    
+        nn_straight = nn_t_3[0]
+        nn_stop = nn_t_3[1]
+        nn_left = nn_t_3[2]
+        nn_right = nn_t_3[3]
+        
+        draw_blue_rectangle(img,52,30,15,gt_straight,gt_stop,gt_left, gt_right)
+        draw_green_rectangle(img,127,30,15,nn_straight,nn_stop,nn_left, nn_right)
+    else:
+        draw_blue_rectangle(img,52,30,15,gt_straight,gt_stop,gt_left, gt_right)
+
+    return img
+
 with h5py.File('image_retrievals.h5py', 'w') as out_file:
     with torch.no_grad():
     
         #criterion = nn.BCELoss(reduce=False).cuda()
         #bce = lambda t1, t2: criterion(t1, t2).mean().flatten()
         #pixel_loss = nn.MSELoss()
-    
         
         file_keys = out_file.keys()
         if args.index_low:
             val_enumerator = enumerate(val_loader,args.index_low)
         else:
             val_enumerator = enumerate(val_loader)
-                
+        
         for batch_idx, (input_imgs, targets, indexes) in val_enumerator:
             batch_time = time.time()
             
@@ -186,7 +272,7 @@ with h5py.File('image_retrievals.h5py', 'w') as out_file:
             og_targets = targets.clone()
     
             input_imgs = input_imgs[:, 0:int((n_frames / 2) * 3), :, :]  # extract only img 1 through 3
-                    
+            
             targets_orig = targets.clone().cpu().numpy()
             targets = targets[:, 0:int(n_frames / 2)]  # extract steers first 3 targets
             
@@ -218,7 +304,7 @@ with h5py.File('image_retrievals.h5py', 'w') as out_file:
             neighbour_stat_list = []
             img_retrievals = []
             
-            show_images = False
+            show_images = True
             
             # data_keys = ['speeds','latitude','longitude','gyro_x','gyro_y','gyro_z','acc_x','acc_y','acc_z','file_key']
             data_keys = val_loader.dataset.__get_data_point__(indexes[0]).data_point().keys()
@@ -228,8 +314,6 @@ with h5py.File('image_retrievals.h5py', 'w') as out_file:
             except:
                 # gyro is not always there
                 current_reference_value = {key:val_loader.dataset.__get_data_point__(indexes[0]).data_point()[key][:] for key in data_keys if key is not 'imgs' and not 'gyro' in key}
-            
-            
             
             for top_id in range(topk):
     
@@ -258,15 +342,44 @@ with h5py.File('image_retrievals.h5py', 'w') as out_file:
             # avg_img = torch.stack(ret_imgs_cv2_comp).mean(0)        
             if show_images: query_img = (input_imgs[0, 0:3, :, :] + 0.5).transpose(1, 2).transpose(0, 2)        
             
-            if show_images: show_img = torch.cat(ret_imgs_cv2_comp, 1)  # .cpu().numpy()
-            if show_images: show_img = torch.cat((query_img, show_img), 1).cpu().numpy()
+            #if show_images: show_img = torch.cat(ret_imgs_cv2_comp, 1)  # .cpu().numpy()
+            #if show_images: show_img = torch.cat((query_img, show_img), 1).cpu().numpy()
+            nb_imgs = []
             
-            # mse_pixel_loss = pixel_loss(Variable(avg_img), Variable(query_img))
+            for i, nb_img in enumerate([(img_retrievals[i][6:9] + 0.5).transpose(1, 2).transpose(0, 2) for i in range(topk)]):
+                nn_ret = neighbour_stat_list[i]['action_label'][2] # choosing the 3rd frame
+                gt_ret = neighbour_stat_list[i]['action_target'][2]
+                nb_img = ret_imgs_cv2_comp[i].cpu().numpy() 
+                add_indicator(nb_img,gt_ret,nn_ret)
+                nb_imgs.append(nb_img)
             
-            #stat_data.append(neighbour_stat_list)
             
+            final_action_vec = []
+            
+            for neighbor in neighbour_stat_list[0:5]:
+                
+                averaged_nbs = np.average(np.array(neighbor['action_label'][2:]),axis=0)
+                final_action_vec.append(averaged_nbs)
+            
+            
+            #print "before {}".format(np.array(final_action_vec),axis=0)
+            #print "after {}".format(np.average(np.array(final_action_vec),axis=0))
+            
+            final_action_vec = np.average(np.array(final_action_vec),axis=0)
+            print final_action_vec
+
+            gt_ret = neighbour_stat_list[0]['action_target'][2]
+            
+            query_img = query_img.cpu().numpy()
+                        
+            query_img = add_indicator(query_img,gt_ret,final_action_vec)
             # The following can be used to write directly on images
             # show_img = write_text(show_img,mse_pixel_loss.cpu().numpy())
+            
+            
+            
+            show_img = np.hstack((query_img,np.concatenate(nb_imgs,axis=1)))
+            
             if show_images: cv2.imshow('test', show_img)
             if show_images: cv2.waitKey(30)
             # print action_correlations
@@ -274,8 +387,7 @@ with h5py.File('image_retrievals.h5py', 'w') as out_file:
             # The next lines can be used to quickly debug code
             if batch_idx % 10 == 0:
                 print "Batch time {}".format(time.time() - batch_time)
-                
-                
+                                
             val_set_id = batch_idx            
             
             for key in current_reference_value.keys():
