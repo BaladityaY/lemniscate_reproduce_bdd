@@ -235,7 +235,7 @@ class Dataset(data.Dataset):
         
         return all_actions, index
     
-    def __get_data_point__(self,index):
+    def get_data_point(self,index):
         '''
         Convenience method to access a complete data point when needed
         '''

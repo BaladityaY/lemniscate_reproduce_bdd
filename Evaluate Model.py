@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import time
 from test import NN, kNN
 from scipy import misc
-
+from PIL import Image
 
 
 parser = argparse.ArgumentParser(description='Evaluate a trained network')
@@ -76,7 +76,7 @@ preload_to_mem = args.preload
 
 
 # In this order the whole val dataset should be loaded into memory and a part of the training set
-val_dataset = Dataset(validation_file, preload_to_mem=preload_to_mem, keep_memory_free=keep_memory_free)
+val_dataset = Dataset(validation_file, preload_to_mem=preload_to_mem, keep_memory_free=keep_memory_free, sliding_window=True)
 
 val_loader = torch.utils.data.DataLoader(
     val_dataset, batch_size=1, shuffle=False,
@@ -126,7 +126,7 @@ def write_text(img, text):
 model.eval()
 debug = True
 
-topk = 9  # It became evident that the top 5 NNs are sufficient for the best results
+topk = 10  # It became evident that the top 5 NNs are sufficient for the best results
 
 
 correct = 0.
@@ -231,7 +231,7 @@ def add_indicator(img, gt_actions, nn_actions):
 
     return img
 
-with h5py.File('image_retrievals.h5py', 'w') as out_file:
+with h5py.File('video_images.h5py', 'a') as out_file:
     with torch.no_grad():
     
         #criterion = nn.BCELoss(reduce=False).cuda()
@@ -344,19 +344,26 @@ with h5py.File('image_retrievals.h5py', 'w') as out_file:
             
             #if show_images: show_img = torch.cat(ret_imgs_cv2_comp, 1)  # .cpu().numpy()
             #if show_images: show_img = torch.cat((query_img, show_img), 1).cpu().numpy()
-            nb_imgs = []
+            if show_images: nb_imgs = []
             
-            for i, nb_img in enumerate([(img_retrievals[i][6:9] + 0.5).transpose(1, 2).transpose(0, 2) for i in range(topk)]):
-                nn_ret = neighbour_stat_list[i]['action_label'][2] # choosing the 3rd frame
-                gt_ret = neighbour_stat_list[i]['action_target'][2]
-                nb_img = ret_imgs_cv2_comp[i].cpu().numpy() 
-                add_indicator(nb_img,gt_ret,nn_ret)
-                nb_imgs.append(nb_img)
+            if show_images:
             
+                return_img = np.zeros((224,224,3),np.float)
+                neighbor_image_list = [(img_retrievals[i][6:9] + 0.5).transpose(1, 2).transpose(0, 2) for i in range(topk)]
+                for i, nb_img in enumerate(neighbor_image_list):
+                    nn_ret = neighbour_stat_list[i]['action_label'][2] # choosing the 3rd frame
+                    gt_ret = neighbour_stat_list[i]['action_target'][2]
+                    nb_img = ret_imgs_cv2_comp[i].cpu().numpy()
+                    nb_img = np.array(nb_img * 255.,dtype=np.uint8) 
+                    #add_indicator(nb_img,gt_ret,nn_ret)
+                    nb_imgs.append(nb_img)
+                    
+                    return_img = return_img+nb_img/len(neighbor_image_list)
+
             
             final_action_vec = []
             
-            for neighbor in neighbour_stat_list[0:5]:
+            for neighbor in neighbour_stat_list[0:topk]:
                 
                 averaged_nbs = np.average(np.array(neighbor['action_label'][2:]),axis=0)
                 final_action_vec.append(averaged_nbs)
@@ -366,23 +373,34 @@ with h5py.File('image_retrievals.h5py', 'w') as out_file:
             #print "after {}".format(np.average(np.array(final_action_vec),axis=0))
             
             final_action_vec = np.average(np.array(final_action_vec),axis=0)
-            print final_action_vec
-
-            gt_ret = neighbour_stat_list[0]['action_target'][2]
             
-            query_img = query_img.cpu().numpy()
-                        
-            query_img = add_indicator(query_img,gt_ret,final_action_vec)
-            # The following can be used to write directly on images
-            # show_img = write_text(show_img,mse_pixel_loss.cpu().numpy())
+            if show_images:
+                gt_ret = neighbour_stat_list[0]['action_target'][2]
+                
+                query_img = query_img.cpu().numpy()
+                
+                query_img = np.array(query_img * 255.,dtype=np.uint8)
+                
+                query_img = add_indicator(query_img,gt_ret,final_action_vec)
+                # The following can be used to write directly on images
+                # show_img = write_text(show_img,mse_pixel_loss.cpu().numpy())
+                
+                #img_to_average = np.concatenate(nb_imgs,axis=0)
+                #other_images = np.mean(img_to_average,axis=0)
+                #other_images = np.expand_dims(other_images,2)
+                
+                #print query_img.shape
+                #print other_images.shape
+                return_img=np.array(np.round(return_img),dtype=np.uint8)
+                show_img = np.hstack((query_img,return_img))
+                
+                cv2.imshow('test', show_img)
+                cv2.waitKey(1)
+                cv2.imwrite("avg-{}.jpg".format(batch_idx),show_img)
             
             
             
-            show_img = np.hstack((query_img,np.concatenate(nb_imgs,axis=1)))
             
-            if show_images: cv2.imshow('test', show_img)
-            if show_images: cv2.waitKey(30)
-            # print action_correlations
             
             # The next lines can be used to quickly debug code
             if batch_idx % 10 == 0:
@@ -513,7 +531,7 @@ print "Finished creating stat data file"
 # 
 # start_time = time.time()
 # img_id = 13
-# 
+# ti
 # 
 # input_imgs = torch.unsqueeze(train_loader.dataset.__getitem__(img_id)[0],0)
 # targets = torch.unsqueeze(train_loader.dataset.__getitem__(img_id)[1],0)
